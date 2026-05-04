@@ -32,7 +32,7 @@ func (e *RustEngine) pkg(cfg *config.Config, art *config.ArtifactConfig, artifac
 }
 
 // handleSystemPackage processes deb, rpm, or msi packages.
-func (e *RustEngine) handleSystemPackage(cfg *config.Config, art *config.ArtifactConfig, artifactName, osName, arch, abi, format string) error {
+func (e *RustEngine) handleSystemPackage(_ *config.Config, art *config.ArtifactConfig, _ string, osName, arch, abi, format string) error {
 	if err := e.validateSystemPackage(osName, abi, arch, format); err != nil {
 		return err
 	}
@@ -44,7 +44,10 @@ func (e *RustEngine) handleSystemPackage(cfg *config.Config, art *config.Artifac
 	target := e.resolveTarget(*bestMatch, arch, abi)
 
 	command := e.getPackageCommand(format)
-	return e.runCargoPackager(command, []string{"--target", target})
+	cmd := exec.Command("cargo", append([]string{command}, "--target", target)...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }
 
 // validateSystemPackage checks OS, ABI, arch, and tool availability.

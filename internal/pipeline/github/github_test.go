@@ -9,7 +9,7 @@ import (
 
 // TestGetRunsOn tests OS to runner label mapping.
 func TestGetRunsOn(t *testing.T) {
-	p := &GithubProvider{}
+	p := &Provider{}
 
 	if label := p.getRunsOn("linux"); label != "ubuntu-latest" {
 		t.Errorf("expected 'ubuntu-latest', got '%s'", label)
@@ -24,7 +24,7 @@ func TestGetRunsOn(t *testing.T) {
 
 // TestSortedArtifactNames tests artifact name sorting.
 func TestSortedArtifactNames(t *testing.T) {
-	p := &GithubProvider{}
+	p := &Provider{}
 	cfg := &config.Config{
 		Artifacts: map[string]*config.ArtifactConfig{
 			"zebra": {},
@@ -44,7 +44,7 @@ func TestSortedArtifactNames(t *testing.T) {
 
 // TestAssembleJobs tests job assembly logic.
 func TestAssembleJobs(t *testing.T) {
-	p := &GithubProvider{}
+	p := &Provider{}
 	include := []MatrixEntry{
 		{Artifact: "test", OS: "linux", Arch: "x86_64", RunsOn: "ubuntu-latest"},
 	}
@@ -83,7 +83,7 @@ func TestAssembleJobs(t *testing.T) {
 
 // TestBuildMatrix tests matrix generation.
 func TestBuildMatrix(t *testing.T) {
-	p := &GithubProvider{}
+	p := &Provider{}
 	cfg := &config.Config{
 		Artifacts: map[string]*config.ArtifactConfig{
 			"test-art": {

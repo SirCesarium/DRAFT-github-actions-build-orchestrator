@@ -10,6 +10,8 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Config is the main configuration structure for Refinery.
+// It holds project settings, artifacts, build steps, and naming conventions.
 type Config struct {
 	RefineryVersion string                     `toml:"refinery_version" mapstructure:"refinery_version"`
 	Project         Project                    `toml:"project" mapstructure:"project"`

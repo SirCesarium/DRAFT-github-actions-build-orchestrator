@@ -6,17 +6,18 @@ import (
 	"os"
 )
 
+// ANSI escape codes for terminal formatting.
 const (
-	Reset  = "\033[0m"
-	Red    = "\033[31m"
-	Green  = "\033[32m"
-	Yellow = "\033[33m"
-	Blue   = "\033[34m"
-	Purple = "\033[35m"
-	Cyan   = "\033[36m"
-	Gray   = "\033[37m"
-	White  = "\033[97m"
-	Bold   = "\033[1m"
+	Reset  = "\033[0m"  // Reset all attributes
+	Red    = "\033[31m" // Red text
+	Green  = "\033[32m" // Green text
+	Yellow = "\033[33m" // Yellow text
+	Blue   = "\033[34m" // Blue text
+	Purple = "\033[35m" // Purple text
+	Cyan   = "\033[36m" // Cyan text
+	Gray   = "\033[37m" // Gray text
+	White  = "\033[97m" // White text
+	Bold   = "\033[1m"  // Bold text
 )
 
 // Success prints a success message with a green checkmark.

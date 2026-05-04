@@ -21,7 +21,7 @@ var supportedArchCmd = &cobra.Command{
 	Use:   "supported-archs [os]",
 	Short: "Print supported architectures for an OS using the project engine",
 	Args:  cobra.MaximumNArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, args []string) {
 		cfg, err := config.Load("refinery.toml")
 		if err != nil {
 			ui.Fatal(err, "Could not load 'refinery.toml'. Run 'refinery init' first.")
@@ -60,7 +60,7 @@ var migrateCmd = &cobra.Command{
 	Use:   "migrate [provider]",
 	Short: "Generate CI/CD workflows with validation",
 	Args:  cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, args []string) {
 		ui.Section("Migration")
 
 		providerName := args[0]

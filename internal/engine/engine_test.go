@@ -48,47 +48,33 @@ func TestGetNonExistent(t *testing.T) {
 func TestGetAfterRegister(t *testing.T) {
 	r := NewRegistry()
 
-	// Register multiple engines
-	r.Register(&mockEngine{id: "engine1"})
-	r.Register(&mockEngine{id: "engine2"})
+	p := &mockEngine{id: "test"}
+	r.Register(p)
 
-	// Check both are retrievable
-	if e1 := r.Get("engine1"); e1 == nil {
-		t.Error("expected engine1 to be retrievable")
+	retrieved := r.Get("test")
+	if retrieved == nil {
+		t.Fatal("expected non-nil engine")
 	}
-	if e2 := r.Get("engine2"); e2 == nil {
-		t.Error("expected engine2 to be retrievable")
+	if retrieved.ID() != "test" {
+		t.Errorf("expected 'test', got '%s'", retrieved.ID())
 	}
 }
 
-// mockEngine for testing
+// mockEngine implements engine.BuildEngine for testing.
 type mockEngine struct {
 	id string
 }
 
-func (m *mockEngine) ID() string {
-	return m.id
-}
-func (m *mockEngine) Prepare(cfg *config.Config) error {
+func (m *mockEngine) ID() string                      { return m.id }
+func (m *mockEngine) Prepare(_ *config.Config) error  { return nil }
+func (m *mockEngine) Validate(_ *config.Config) error { return nil }
+func (m *mockEngine) Build(_ *config.Config, _ *config.ArtifactConfig, _ BuildOptions) error {
 	return nil
 }
-func (m *mockEngine) Validate(cfg *config.Config) error {
+func (m *mockEngine) GetCIRequirements(_ *config.Config) []string { return nil }
+func (m *mockEngine) Package(_ *config.Config, _ *config.ArtifactConfig, _ BuildOptions, _ string) error {
 	return nil
 }
-func (m *mockEngine) Build(cfg *config.Config, art *config.ArtifactConfig, opts BuildOptions) error {
-	return nil
-}
-func (m *mockEngine) GetCIRequirements(cfg *config.Config) []string {
-	return nil
-}
-func (m *mockEngine) Package(cfg *config.Config, art *config.ArtifactConfig, opts BuildOptions, format string) error {
-	return nil
-}
-func (m *mockEngine) GetSupportedArchs(os string) []string {
-	switch os {
-	case "linux", "windows", "darwin":
-		return []string{"amd64", "386", "arm64", "arm"}
-	default:
-		return []string{}
-	}
+func (m *mockEngine) GetSupportedArchs(_ string) []string {
+	return []string{"amd64", "386", "arm64"}
 }

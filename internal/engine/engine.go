@@ -6,6 +6,7 @@ import (
 )
 
 // BuildOptions defines the target for a build operation.
+// It specifies the artifact name, OS, architecture, ABI, and version.
 type BuildOptions struct {
 	ArtifactName string
 	OS           string
@@ -15,6 +16,7 @@ type BuildOptions struct {
 }
 
 // BuildEngine defines the interface for language-specific build engines.
+// Each language (Go, Rust, etc.) implements this interface.
 type BuildEngine interface {
 	ID() string
 	Prepare(cfg *config.Config) error

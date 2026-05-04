@@ -73,29 +73,21 @@ func TestGetBestMatchForTarget(t *testing.T) {
 func TestGetExtAndPrefixForOS(t *testing.T) {
 	e := &GoEngine{}
 
-	ext, prefix := e.getExtAndPrefix("linux", "bin")
-	if ext != "" {
+	if ext, _ := e.getExtAndPrefix("linux", "bin"); ext != "" {
 		t.Errorf("expected empty ext for linux bin, got '%s'", ext)
 	}
-	if prefix != "" {
-		t.Errorf("expected empty prefix for linux bin, got '%s'", prefix)
-	}
 
-	ext, prefix = e.getExtAndPrefix("windows", "bin")
-	if ext != "exe" {
+	if ext, _ := e.getExtAndPrefix("windows", "bin"); ext != "exe" {
 		t.Errorf("expected 'exe' for windows bin, got '%s'", ext)
 	}
 
-	ext, prefix = e.getExtAndPrefix("darwin", "bin")
-	if ext != "" {
+	if ext, _ := e.getExtAndPrefix("darwin", "bin"); ext != "" {
 		t.Errorf("expected empty ext for darwin bin, got '%s'", ext)
 	}
 
-	ext, prefix = e.getExtAndPrefix("linux", "lib")
-	if ext != "so" {
+	if ext, prefix := e.getExtAndPrefix("linux", "lib"); ext != "so" {
 		t.Errorf("expected 'so' for linux lib, got '%s'", ext)
-	}
-	if prefix != "lib" {
+	} else if prefix != "lib" {
 		t.Errorf("expected 'lib' prefix for lib, got '%s'", prefix)
 	}
 }

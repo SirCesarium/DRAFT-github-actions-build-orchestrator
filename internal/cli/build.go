@@ -24,7 +24,7 @@ var (
 var buildCmd = &cobra.Command{
 	Use:   "build",
 	Short: "Build and package an artifact based on configuration",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		ui.Section("Initialization")
 
 		// Load configuration.

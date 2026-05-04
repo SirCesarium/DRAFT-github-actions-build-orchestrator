@@ -1,0 +1,35 @@
+version: "2"
+run:
+  timeout: 5m
+  skip-dirs:
+    - "bin"
+    - "vendor"
+linters:
+  default: none
+  enable:
+    # Code quality
+    - govet
+    - staticcheck
+    - ineffassign
+    - unused
+    # Best practices
+    - errorlint
+    # Naming & conventions (solo lo útil)
+    - revive
+  settings:
+    govet:
+      check-shadowing: true
+    revive:
+      rules:
+        - name: range
+        - name: unreachable-code
+        - name: unused-parameter
+        - name: indent-error-flow
+        - name: var-naming
+        - name: blank-imports
+        - name: context-as-argument
+        - name: error-naming
+        - name: error-return
+        - name: receiver-naming
+        - name: increment-decrement
+        - name: error-strings

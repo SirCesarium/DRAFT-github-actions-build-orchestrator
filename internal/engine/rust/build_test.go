@@ -127,16 +127,16 @@ func TestRunHooks(t *testing.T) {
 		Arch:         "x86_64",
 	}
 
-	if err := e.runHooks(art, opts, "/bin/test", "1.0.0", "PreBuild"); err != nil {
+	if err := e.runHooks(art, opts, "/bin/test", "PreBuild"); err != nil {
 		t.Errorf("PreBuild hooks failed: %v", err)
 	}
 
-	if err := e.runHooks(art, opts, "/bin/test", "1.0.0", "PostBuild"); err != nil {
+	if err := e.runHooks(art, opts, "/bin/test", "PostBuild"); err != nil {
 		t.Errorf("PostBuild hooks failed: %v", err)
 	}
 
 	art.Hooks.PreBuild = []string{"exit 1"}
-	if err := e.runHooks(art, opts, "/bin/test", "1.0.0", "PreBuild"); err == nil {
+	if err := e.runHooks(art, opts, "/bin/test", "PreBuild"); err == nil {
 		t.Error("expected error from failing hook")
 	}
 }
@@ -161,7 +161,11 @@ func TestMoveArtifacts(t *testing.T) {
 	if err := os.MkdirAll("target/x86_64-unknown-linux-gnu/release", 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile("target/x86_64-unknown-linux-gnu/release/test-app", []byte("binary"), 0644); err != nil {
+
+	// Create file with the name that moveArtifacts will look for
+	// The naming template is "{artifact}-{os}-{arch}{abi}"
+	expectedFileName := "test-app-linux-x86_64"
+	if err := os.WriteFile("target/x86_64-unknown-linux-gnu/release/"+expectedFileName, []byte("binary"), 0644); err != nil {
 		t.Fatal(err)
 	}
 

@@ -71,19 +71,19 @@ type mockBuildEngineForGithub struct {
 	requirements []string
 }
 
-func (m *mockBuildEngineForGithub) ID() string                        { return "mock" }
-func (m *mockBuildEngineForGithub) Prepare(cfg *config.Config) error  { return nil }
-func (m *mockBuildEngineForGithub) Validate(cfg *config.Config) error { return nil }
-func (m *mockBuildEngineForGithub) Build(cfg *config.Config, art *config.ArtifactConfig, opts engine.BuildOptions) error {
+func (m *mockBuildEngineForGithub) ID() string                      { return "mock" }
+func (m *mockBuildEngineForGithub) Prepare(_ *config.Config) error  { return nil }
+func (m *mockBuildEngineForGithub) Validate(_ *config.Config) error { return nil }
+func (m *mockBuildEngineForGithub) Build(_ *config.Config, _ *config.ArtifactConfig, _ engine.BuildOptions) error {
 	return nil
 }
-func (m *mockBuildEngineForGithub) GetCIRequirements(cfg *config.Config) []string {
+func (m *mockBuildEngineForGithub) GetCIRequirements(_ *config.Config) []string {
 	return m.requirements
 }
-func (m *mockBuildEngineForGithub) Package(cfg *config.Config, art *config.ArtifactConfig, opts engine.BuildOptions, format string) error {
+func (m *mockBuildEngineForGithub) Package(_ *config.Config, _ *config.ArtifactConfig, _ engine.BuildOptions, _ string) error {
 	return nil
 }
-func (m *mockBuildEngineForGithub) GetSupportedArchs(os string) []string {
+func (m *mockBuildEngineForGithub) GetSupportedArchs(_ string) []string {
 	return []string{"x86_64", "i686", "aarch64"}
 }
 
@@ -143,7 +143,7 @@ func TestGetBuildArtifactStepsFunction(t *testing.T) {
 }
 
 func TestCreateGithubStepResolution(t *testing.T) {
-	p := &GithubProvider{}
+	p := &Provider{}
 	eng := &mockBuildEngineForGithub{}
 	cfg := &config.Config{
 		PreBuild: []config.BuildStep{

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -35,8 +36,8 @@ func (e *RustEngine) build(cfg *config.Config, art *config.ArtifactConfig, opts 
 		version = manifest.Package.Version
 	}
 
-	_, binaryPath := e.resolveBinaryInfo(cfg, art, opts, manifest, targetTriple, profile, version)
-	if err := e.runHooks(art, opts, binaryPath, version, "PreBuild"); err != nil {
+	binaryName, _ := e.resolveBinaryInfo(cfg, art, opts, manifest, targetTriple, profile, version)
+	if err := e.runHooks(art, opts, binaryName, "PreBuild"); err != nil {
 		return err
 	}
 
@@ -52,7 +53,7 @@ func (e *RustEngine) build(cfg *config.Config, art *config.ArtifactConfig, opts 
 		return err
 	}
 
-	return e.runHooks(art, opts, binaryPath, version, "PostBuild")
+	return e.runHooks(art, opts, binaryName, "PostBuild")
 }
 
 // getProfile extracts the build profile from target config.
@@ -65,7 +66,7 @@ func (e *RustEngine) getProfile(tCfg config.TargetConfig) string {
 }
 
 // resolveBinaryInfo returns the binary name and full path based on naming config.
-func (e *RustEngine) resolveBinaryInfo(cfg *config.Config, art *config.ArtifactConfig, opts engine.BuildOptions, manifest *cargoManifest, targetTriple, profile, version string) (string, string) {
+func (e *RustEngine) resolveBinaryInfo(cfg *config.Config, art *config.ArtifactConfig, opts engine.BuildOptions, _ *cargoManifest, _, _, version string) (string, string) {
 	ext := e.getBinaryExt(art, opts.OS, opts.ABI)
 	binaryName := cfg.Naming.Resolve(cfg.Naming.Binary, opts.ArtifactName, opts.OS, opts.Arch, version, opts.ABI, ext)
 	return binaryName, filepath.Join(cfg.OutputDir, binaryName)
@@ -85,8 +86,8 @@ func (e *RustEngine) getBinaryExt(art *config.ArtifactConfig, osName, abi string
 }
 
 // runHooks executes either pre-build or post-build hooks.
-func (e *RustEngine) runHooks(art *config.ArtifactConfig, opts engine.BuildOptions, binaryPath, version, hookType string) error {
-	resolvedHooks := art.Hooks.ResolveAll(opts.ArtifactName, opts.OS, opts.Arch, version, opts.ABI, binaryPath)
+func (e *RustEngine) runHooks(art *config.ArtifactConfig, opts engine.BuildOptions, binaryPath, hookType string) error {
+	resolvedHooks := art.Hooks.ResolveAll(opts.ArtifactName, opts.OS, opts.Arch, opts.Version, opts.ABI, binaryPath)
 
 	var hooks []string
 	if hookType == "PreBuild" {
@@ -103,9 +104,115 @@ func (e *RustEngine) runHooks(art *config.ArtifactConfig, opts engine.BuildOptio
 	return nil
 }
 
+// runHook executes a shell command hook.
+func (e *RustEngine) runHook(hook string) error {
+	parts := strings.Fields(hook)
+	if len(parts) == 0 {
+		return nil
+	}
+	cmd := exec.Command(parts[0], parts[1:]...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+// setupEnvironment sets up environment variables for the build.
+func (e *RustEngine) setupEnvironment(art *config.ArtifactConfig, osName, arch, _, target string) error {
+	if err := e.setupMacOSDeployment(); err != nil {
+		return err
+	}
+
+	if err := e.setupLinker(art, osName, arch, target); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// setupLinker configures the linker for the target if needed.
+func (e *RustEngine) setupLinker(art *config.ArtifactConfig, osName, arch, target string) error {
+	linker := e.getLinkerFromConfig(art, osName, arch)
+	if linker == "" {
+		return nil
+	}
+
+	isArmLinker := strings.Contains(linker, "aarch64") || strings.Contains(linker, "arm")
+	isArmTarget := strings.Contains(arch, "aarch64") || strings.Contains(arch, "arm")
+	isX64Linker := strings.Contains(linker, "x86_64") || strings.Contains(linker, "x64")
+	isX64Target := strings.Contains(arch, "x86_64") || strings.Contains(arch, "x64")
+
+	shouldApply := (!isArmLinker || isArmTarget) && (!isX64Linker || isX64Target)
+
+	if shouldApply {
+		envKey := fmt.Sprintf("CARGO_TARGET_%s_LINKER",
+			strings.ReplaceAll(strings.ReplaceAll(strings.ToUpper(target), "-", "_"), ".", "_"))
+		if err := os.Setenv(envKey, linker); err != nil {
+			return fmt.Errorf("failed to set linker env %s: %w", envKey, err)
+		}
+	}
+	return nil
+}
+
+// getLinkerFromConfig returns the linker specified in target config.
+func (e *RustEngine) getLinkerFromConfig(art *config.ArtifactConfig, osName, arch string) string {
+	if art == nil {
+		return ""
+	}
+
+	for _, tCfg := range art.Targets {
+		if tCfg.OS == osName {
+			for _, a := range tCfg.Archs {
+				if a == arch {
+					if linker, ok := tCfg.LangOpts["linker"].(string); ok {
+						return linker
+					}
+				}
+			}
+		}
+	}
+	return ""
+}
+
+// setupMacOSDeployment sets a default deployment target for macOS.
+func (e *RustEngine) setupMacOSDeployment() error {
+	if os.Getenv("MACOSX_DEPLOYMENT_TARGET") == "" {
+		ui.Warn("MACOSX_DEPLOYMENT_TARGET not set, defaulting to 10.7")
+		if err := os.Setenv("MACOSX_DEPLOYMENT_TARGET", "10.7"); err != nil {
+			return fmt.Errorf("failed to set MACOSX_DEPLOYMENT_TARGET: %w", err)
+		}
+	}
+	return nil
+}
+
+// addTarget adds the compilation target to rustup.
+func (e *RustEngine) addTarget(target string) error {
+	cmd := exec.Command("rustup", "target", "add", target)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		ui.Warn("Failed to add target %s: %v (may already exist)", target, err)
+	}
+	return nil
+}
+
+// runCargoBuild executes 'cargo build' with the appropriate flags.
+func (e *RustEngine) runCargoBuild(_ *config.ArtifactConfig, artifactName, _, _, _, target, profile string) error {
+	args := []string{"build", "--target", target}
+
+	if profile != "debug" && profile != "dev" {
+		args = append(args, "--release")
+	}
+
+	args = append(args, "-p", artifactName)
+
+	cmd := exec.Command("cargo", args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
 // moveArtifacts copies built files from cargo target dir to the output directory.
-// It also handles header files if configured.
-func (e *RustEngine) moveArtifacts(cfg *config.Config, art *config.ArtifactConfig, artifactName, osName, arch, abi, target, version, profile string, manifest *cargoManifest) error {
+func (e *RustEngine) moveArtifacts(cfg *config.Config, art *config.ArtifactConfig, artifactName, osName, arch, abi, target, version, profile string, _ *cargoManifest) error {
 	var buildTypes []string
 	if art.Type == "bin" {
 		buildTypes = []string{"bin"}
@@ -126,11 +233,7 @@ func (e *RustEngine) moveArtifacts(cfg *config.Config, art *config.ArtifactConfi
 		ext, prefix := e.getExtAndPrefix(osName, abi, art.Type, bt)
 		finalName := cfg.Naming.Resolve(cfg.Naming.Binary, artifactName, osName, arch, version, abi, ext)
 
-		realSrcName := artifactName
-		if art.Type == "lib" && manifest.Lib != nil && manifest.Lib.Name != "" {
-			realSrcName = manifest.Lib.Name
-		}
-
+		realSrcName := finalName
 		if prefix != "" && !strings.HasPrefix(realSrcName, prefix) {
 			realSrcName = prefix + realSrcName
 		}
@@ -139,18 +242,18 @@ func (e *RustEngine) moveArtifacts(cfg *config.Config, art *config.ArtifactConfi
 		}
 
 		srcPath := filepath.Join("target", target, cargoProfileDir, realSrcName)
-		distPath := filepath.Join(cfg.OutputDir, finalName)
-
-		if err := os.MkdirAll(cfg.OutputDir, 0755); err != nil {
-			return err
-		}
 
 		if _, err := os.Stat(srcPath); os.IsNotExist(err) {
 			ui.Warn("Expected artifact not found at %s (build type: %s). Skipping...", srcPath, bt)
 			continue
 		}
 
-		if err := moveFile(srcPath, distPath); err != nil {
+		if err := os.MkdirAll(cfg.OutputDir, 0755); err != nil {
+			return err
+		}
+
+		destPath := filepath.Join(cfg.OutputDir, finalName)
+		if err := moveFile(srcPath, destPath); err != nil {
 			return err
 		}
 		movedCount++
@@ -188,11 +291,7 @@ func moveFile(src, dst string) error {
 		return nil
 	}
 
-	if err := copyFile(src, dst); err != nil {
-		return err
-	}
-
-	return os.Remove(src)
+	return copyFile(src, dst)
 }
 
 func copyFile(src, dst string) error {
@@ -200,7 +299,6 @@ func copyFile(src, dst string) error {
 	if err != nil {
 		return err
 	}
-
 	defer in.Close()
 
 	stat, err := in.Stat()
@@ -208,11 +306,10 @@ func copyFile(src, dst string) error {
 		return err
 	}
 
-	out, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, stat.Mode())
+	out, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE, stat.Mode())
 	if err != nil {
 		return err
 	}
-
 	defer out.Close()
 
 	_, err = io.Copy(out, in)

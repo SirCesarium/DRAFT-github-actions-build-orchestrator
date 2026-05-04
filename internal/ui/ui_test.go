@@ -5,28 +5,28 @@ import (
 	"testing"
 )
 
-func TestSuccess(t *testing.T) {
+func TestSuccess(_ *testing.T) {
 	Success("test %s", "message")
 }
 
-func TestInfo(t *testing.T) {
+func TestInfo(_ *testing.T) {
 	Info("test %s", "info")
 }
 
-func TestWarn(t *testing.T) {
+func TestWarn(_ *testing.T) {
 	Warn("test %s", "warning")
 }
 
-func TestError(t *testing.T) {
+func TestError(_ *testing.T) {
 	Error(os.ErrNotExist, "help message")
 	Error(nil, "help message")
 }
 
-func TestFatal(t *testing.T) {
+func TestFatal(_ *testing.T) {
 	_ = Fatal
 }
 
-func TestSection(t *testing.T) {
+func TestSection(_ *testing.T) {
 	Section("Test Section")
 }
 

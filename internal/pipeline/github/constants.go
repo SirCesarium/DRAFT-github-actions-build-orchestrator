@@ -1,6 +1,7 @@
 // Package github defines constants for GitHub Actions used in workflow generation.
 package github
 
+// GitHub Actions used in workflow generation.
 const (
 	ActionCheckout         = "actions/checkout@v6"
 	ActionSetupGo          = "actions/setup-go@v6"

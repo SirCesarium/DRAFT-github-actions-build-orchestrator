@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-
-	"github.com/pelletier/go-toml/v2"
 )
 
 type goModManifest struct {
@@ -41,18 +39,4 @@ func (e *GoEngine) loadManifest() (*goModManifest, error) {
 	}
 
 	return manifest, nil
-}
-
-// loadManifestAsToml reads go.mod and attempts TOML parsing for advanced fields.
-func (e *GoEngine) loadManifestAsToml() (*goModManifest, error) {
-	goModBytes, err := os.ReadFile("go.mod")
-	if err != nil {
-		return nil, fmt.Errorf("could not read go.mod: %w", err)
-	}
-
-	var manifest goModManifest
-	if err := toml.Unmarshal(goModBytes, &manifest); err != nil {
-		return nil, fmt.Errorf("error parsing go.mod: %w", err)
-	}
-	return &manifest, nil
 }

@@ -18,7 +18,7 @@ var initCmd = &cobra.Command{
 	Use:   "init [name]",
 	Short: "Initialize a new refinery project",
 	Args:  cobra.MaximumNArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, args []string) {
 		ui.Section("Initialization")
 		// Get current directory as default project name.
 		workingDir, err := os.Getwd()

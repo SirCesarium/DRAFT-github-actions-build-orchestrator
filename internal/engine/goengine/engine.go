@@ -17,7 +17,7 @@ func (e *GoEngine) ID() string {
 }
 
 // Prepare verifies that the Go toolchain is available.
-func (e *GoEngine) Prepare(cfg *config.Config) error {
+func (e *GoEngine) Prepare(_ *config.Config) error {
 	if _, err := exec.LookPath("go"); err != nil {
 		return fmt.Errorf("go not found in PATH")
 	}
@@ -126,7 +126,7 @@ func (e *GoEngine) uniqueFormats(values []string) []string {
 // validateTarget checks if the OS/arch/ABI combination is valid for Go.
 func (e *GoEngine) validateTarget(osName, arch, abi string) error {
 	if abi != "" {
-		return fmt.Errorf("Go does not use ABI specification (got: %s)", abi)
+		return fmt.Errorf("go does not use ABI specification (got: %s)", abi)
 	}
 
 	validGOOS := map[string]bool{

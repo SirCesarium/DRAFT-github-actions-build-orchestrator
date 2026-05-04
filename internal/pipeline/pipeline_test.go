@@ -17,7 +17,7 @@ type mockCIProvider struct {
 func (m *mockCIProvider) Name() string {
 	return m.name
 }
-func (m *mockCIProvider) Generate(cfg *config.Config, eng engine.BuildEngine) ([]byte, error) {
+func (m *mockCIProvider) Generate(_ *config.Config, _ engine.BuildEngine) ([]byte, error) {
 	if m.generateErr != nil {
 		return nil, m.generateErr
 	}
@@ -111,16 +111,16 @@ func TestGeneratorFilename(t *testing.T) {
 // mockEngine implements engine.BuildEngine for testing.
 type mockEngine struct{}
 
-func (m *mockEngine) ID() string                        { return "mock" }
-func (m *mockEngine) Prepare(cfg *config.Config) error  { return nil }
-func (m *mockEngine) Validate(cfg *config.Config) error { return nil }
-func (m *mockEngine) Build(cfg *config.Config, art *config.ArtifactConfig, opts engine.BuildOptions) error {
+func (m *mockEngine) ID() string                      { return "mock" }
+func (m *mockEngine) Prepare(_ *config.Config) error  { return nil }
+func (m *mockEngine) Validate(_ *config.Config) error { return nil }
+func (m *mockEngine) Build(_ *config.Config, _ *config.ArtifactConfig, _ engine.BuildOptions) error {
 	return nil
 }
-func (m *mockEngine) GetCIRequirements(cfg *config.Config) []string { return nil }
-func (m *mockEngine) Package(cfg *config.Config, art *config.ArtifactConfig, opts engine.BuildOptions, format string) error {
+func (m *mockEngine) GetCIRequirements(_ *config.Config) []string { return nil }
+func (m *mockEngine) Package(_ *config.Config, _ *config.ArtifactConfig, _ engine.BuildOptions, _ string) error {
 	return nil
 }
-func (m *mockEngine) GetSupportedArchs(os string) []string {
+func (m *mockEngine) GetSupportedArchs(_ string) []string {
 	return []string{"amd64", "386", "arm64"}
 }

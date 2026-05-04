@@ -15,8 +15,9 @@ import (
 // OrderedMapAny is a map[string]any that marshals to YAML with sorted keys.
 type OrderedMapAny map[string]any
 
+// MarshalYAML implements custom YAML marshaling that sorts map keys.
 func (m OrderedMapAny) MarshalYAML() (interface{}, error) {
-	if m == nil || len(m) == 0 {
+	if len(m) == 0 {
 		return nil, nil
 	}
 	node := &yaml.Node{
@@ -47,8 +48,9 @@ func (m OrderedMapAny) MarshalYAML() (interface{}, error) {
 // OrderedMapString is a map[string]string that marshals to YAML with sorted keys.
 type OrderedMapString map[string]string
 
+// MarshalYAML implements custom YAML marshaling that sorts map keys.
 func (m OrderedMapString) MarshalYAML() (interface{}, error) {
-	if m == nil || len(m) == 0 {
+	if len(m) == 0 {
 		return nil, nil
 	}
 	node := &yaml.Node{
@@ -69,6 +71,7 @@ func (m OrderedMapString) MarshalYAML() (interface{}, error) {
 }
 
 // Permissions represents GitHub Actions permissions with fixed key order.
+// It ensures deterministic YAML output by using a struct instead of a map.
 type Permissions struct {
 	Contents string `yaml:"contents"`
 	Packages string `yaml:"packages"`
@@ -148,28 +151,31 @@ type Step struct {
 	Shell string           `yaml:"shell,omitempty"`
 }
 
-type GithubProvider struct {
+// Provider implements the CIProvider interface for GitHub Actions.
+type Provider struct {
 	filename string
 }
 
 // NewProvider creates a new GitHub Actions workflow provider.
-func NewProvider(filename string) (*GithubProvider, error) {
+func NewProvider(filename string) (*Provider, error) {
 	if filename == "" {
 		return nil, fmt.Errorf("workflow filename cannot be empty")
 	}
-	return &GithubProvider{filename: filename}, nil
+	return &Provider{filename: filename}, nil
 }
 
-func (p *GithubProvider) Name() string {
+// Name returns the provider name.
+func (p *Provider) Name() string {
 	return "github"
 }
 
-func (p *GithubProvider) Filename() string {
+// Filename returns the workflow file path.
+func (p *Provider) Filename() string {
 	return filepath.Join(".github", "workflows", fmt.Sprintf("%s.yml", p.filename))
 }
 
 // Generate creates a GitHub Actions workflow YAML for the given config and engine.
-func (p *GithubProvider) Generate(cfg *config.Config, eng engine.BuildEngine) ([]byte, error) {
+func (p *Provider) Generate(cfg *config.Config, eng engine.BuildEngine) ([]byte, error) {
 	if err := eng.Validate(cfg); err != nil {
 		return nil, err
 	}
@@ -194,7 +200,7 @@ func (p *GithubProvider) Generate(cfg *config.Config, eng engine.BuildEngine) ([
 	return yaml.Marshal(wf)
 }
 
-func (p *GithubProvider) getSplitSteps(eng engine.BuildEngine, cfg *config.Config) (setup, build, teardown []Step) {
+func (p *Provider) getSplitSteps(eng engine.BuildEngine, cfg *config.Config) (setup, build, teardown []Step) {
 	buildRefinery := cfg.BuildRefinery != nil && cfg.BuildRefinery.Enabled
 
 	// 1. Setup Stage (Global Pre-Build)
@@ -269,7 +275,7 @@ func (p *GithubProvider) getSplitSteps(eng engine.BuildEngine, cfg *config.Confi
 }
 
 // buildMatrix creates the matrix include array from config artifacts and targets.
-func (p *GithubProvider) buildMatrix(cfg *config.Config) []MatrixEntry {
+func (p *Provider) buildMatrix(cfg *config.Config) []MatrixEntry {
 	var include []MatrixEntry
 	uniqueMatrix := make(map[string]bool)
 
@@ -335,7 +341,7 @@ func (p *GithubProvider) buildMatrix(cfg *config.Config) []MatrixEntry {
 }
 
 // sortedArtifactNames returns artifact names in sorted order.
-func (p *GithubProvider) sortedArtifactNames(cfg *config.Config) []string {
+func (p *Provider) sortedArtifactNames(cfg *config.Config) []string {
 	var names []string
 	for name := range cfg.Artifacts {
 		names = append(names, name)
@@ -345,7 +351,7 @@ func (p *GithubProvider) sortedArtifactNames(cfg *config.Config) []string {
 }
 
 // getRunsOn maps OS to GitHub Actions runner labels.
-func (p *GithubProvider) getRunsOn(osName string) string {
+func (p *Provider) getRunsOn(osName string) string {
 	switch osName {
 	case "windows":
 		return "windows-latest"
@@ -357,7 +363,7 @@ func (p *GithubProvider) getRunsOn(osName string) string {
 }
 
 // addCIRequirementSteps adds steps based on engine requirements.
-func (p *GithubProvider) addCIRequirementSteps(steps []Step, eng engine.BuildEngine, cfg *config.Config) []Step {
+func (p *Provider) addCIRequirementSteps(steps []Step, eng engine.BuildEngine, cfg *config.Config) []Step {
 	for _, req := range eng.GetCIRequirements(cfg) {
 		switch req {
 		case "go":
@@ -420,7 +426,7 @@ func (p *GithubProvider) addCIRequirementSteps(steps []Step, eng engine.BuildEng
 }
 
 // getBuildArtifactStep returns the artifact build step.
-func (p *GithubProvider) getBuildArtifactStep(cfg *config.Config) []Step {
+func (p *Provider) getBuildArtifactStep(cfg *config.Config) []Step {
 	if cfg.BuildRefinery != nil && cfg.BuildRefinery.Enabled {
 		return []Step{{
 			Name:  "Build Artifact using Local Refinery",
@@ -441,7 +447,7 @@ func (p *GithubProvider) getBuildArtifactStep(cfg *config.Config) []Step {
 	}}
 }
 
-func (p *GithubProvider) createGithubStep(step config.BuildStep, prefix string) Step {
+func (p *Provider) createGithubStep(step config.BuildStep, prefix string) Step {
 	// Resolve action name to full action path if needed
 	action := step.Action
 	if action != "" && !strings.Contains(action, "/") && !strings.HasSuffix(action, ".yml") {
@@ -485,7 +491,7 @@ func (p *GithubProvider) createGithubStep(step config.BuildStep, prefix string) 
 }
 
 // assembleJobs creates the jobs with fixed order for the workflow.
-func (p *GithubProvider) assembleJobs(include []MatrixEntry, setup, build, teardown []Step) Jobs {
+func (p *Provider) assembleJobs(include []MatrixEntry, setup, build, teardown []Step) Jobs {
 	jobs := Jobs{}
 	hasSetup := len(setup) > 1
 	hasTeardown := len(teardown) > 0
@@ -539,7 +545,7 @@ func (p *GithubProvider) assembleJobs(include []MatrixEntry, setup, build, teard
 				Name: "Publish Release",
 				Uses: ActionGHRelease,
 				With: OrderedMapAny{"fail_on_unmatched_files": true, "files": "./artifacts/**/*"},
-				Env:  OrderedMapString{"GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}"},
+				Env:  OrderedMapString{"GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}"}, //nolint:gosec // GitHub Actions secret reference
 			},
 		},
 	}

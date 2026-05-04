@@ -18,7 +18,9 @@ func (e *RustEngine) ID() string {
 	return "rust"
 }
 
-func (e *RustEngine) Prepare(cfg *config.Config) error {
+// Prepare implements the BuildEngine interface for Rust.
+// It checks for required toolchain availability.
+func (e *RustEngine) Prepare(_ *config.Config) error {
 	if _, err := exec.LookPath("rustup"); err != nil {
 		return fmt.Errorf("rustup not found in PATH")
 	}
@@ -83,10 +85,7 @@ func (e *RustEngine) isBinDefined(name string, manifest *cargoManifest) bool {
 			return true
 		}
 	}
-	if manifest.Package.Name == name {
-		return true
-	}
-	return false
+	return manifest.Package.Name == name
 }
 
 // GetCIRequirements returns necessary tools/packages for CI based on config.
@@ -166,14 +165,17 @@ func (e *RustEngine) uniqueFormats(values []string) []string {
 	return unique
 }
 
+// Build implements the BuildEngine interface for Rust.
 func (e *RustEngine) Build(cfg *config.Config, art *config.ArtifactConfig, opts engine.BuildOptions) error {
 	return e.build(cfg, art, opts)
 }
 
+// Package implements the BuildEngine interface for Rust.
 func (e *RustEngine) Package(cfg *config.Config, art *config.ArtifactConfig, opts engine.BuildOptions, format string) error {
 	return e.pkg(cfg, art, opts.ArtifactName, opts.OS, opts.Arch, opts.ABI, opts.Version, format)
 }
 
+// ValidateRustSpecific runs Rust-specific validation.
 func (e *RustEngine) ValidateRustSpecific(cfg *config.Config) error {
 	manifest, err := e.loadManifest()
 	if err != nil {

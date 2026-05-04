@@ -19,11 +19,6 @@ func (e *GoEngine) build(cfg *config.Config, art *config.ArtifactConfig, opts en
 		return fmt.Errorf("no matching target found for %s-%s-%s", opts.OS, opts.Arch, opts.ABI)
 	}
 
-	manifest, err := e.loadManifest()
-	if err != nil {
-		return err
-	}
-
 	binaryName, binaryPath := e.resolveBinaryInfo(cfg, art, opts, opts.Version)
 	_ = binaryPath
 
@@ -31,18 +26,18 @@ func (e *GoEngine) build(cfg *config.Config, art *config.ArtifactConfig, opts en
 		return err
 	}
 
-	if err := e.runGoBuild(cfg, art, opts, manifest); err != nil {
+	if err := e.runGoBuild(cfg, art, opts); err != nil {
 		return err
 	}
 
-	if err := e.moveArtifacts(cfg, art, opts, manifest); err != nil {
+	if err := e.moveArtifacts(cfg, art, opts); err != nil {
 		return err
 	}
 
 	return e.runHooks(art, opts, binaryName, "PostBuild")
 }
 
-// resolveBinaryInfo returns the binary name based on naming config.
+// resolveBinaryInfo returns the binary name and full path based on naming config.
 func (e *GoEngine) resolveBinaryInfo(cfg *config.Config, art *config.ArtifactConfig, opts engine.BuildOptions, version string) (string, string) {
 	ext, _ := e.getExtAndPrefix(opts.OS, art.Type)
 	binaryName := cfg.Naming.Resolve(cfg.Naming.Binary, opts.ArtifactName, opts.OS, opts.Arch, version, opts.ABI, ext)
@@ -50,7 +45,7 @@ func (e *GoEngine) resolveBinaryInfo(cfg *config.Config, art *config.ArtifactCon
 }
 
 // runGoBuild executes 'go build' with the appropriate GOOS and GOARCH environment variables.
-func (e *GoEngine) runGoBuild(cfg *config.Config, art *config.ArtifactConfig, opts engine.BuildOptions, manifest *goModManifest) error {
+func (e *GoEngine) runGoBuild(cfg *config.Config, art *config.ArtifactConfig, opts engine.BuildOptions) error {
 	outputName, _ := e.resolveBinaryInfo(cfg, art, opts, opts.Version)
 
 	if err := os.MkdirAll(cfg.OutputDir, 0755); err != nil {
@@ -118,10 +113,7 @@ func (e *GoEngine) runHook(hook string) error {
 }
 
 // moveArtifacts copies built files from the output directory.
-func (e *GoEngine) moveArtifacts(cfg *config.Config, art *config.ArtifactConfig, opts engine.BuildOptions, manifest *goModManifest) error {
-	_ = manifest
-	_ = cfg
-
+func (e *GoEngine) moveArtifacts(cfg *config.Config, art *config.ArtifactConfig, _ engine.BuildOptions) error {
 	if art.Headers {
 		headers, err := filepath.Glob("*.go")
 		if err != nil {
@@ -151,7 +143,7 @@ func copyFile(src, dst string) error {
 		return err
 	}
 
-	out, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, stat.Mode())
+	out, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE, stat.Mode())
 	if err != nil {
 		return err
 	}

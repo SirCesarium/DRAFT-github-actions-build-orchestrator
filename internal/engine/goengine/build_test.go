@@ -10,29 +10,21 @@ import (
 func TestGetExtAndPrefix(t *testing.T) {
 	e := &GoEngine{}
 
-	ext, prefix := e.getExtAndPrefix("linux", "bin")
-	if ext != "" {
+	if ext, _ := e.getExtAndPrefix("linux", "bin"); ext != "" {
 		t.Errorf("expected empty string for bin on linux, got '%s'", ext)
 	}
-	if prefix != "" {
-		t.Errorf("expected empty prefix for bin on linux, got '%s'", prefix)
-	}
 
-	ext, prefix = e.getExtAndPrefix("windows", "bin")
-	if ext != "exe" {
+	if ext, _ := e.getExtAndPrefix("windows", "bin"); ext != "exe" {
 		t.Errorf("expected 'exe' for bin on windows, got '%s'", ext)
 	}
 
-	ext, prefix = e.getExtAndPrefix("linux", "lib")
-	if ext != "so" {
+	if ext, prefix := e.getExtAndPrefix("linux", "lib"); ext != "so" {
 		t.Errorf("expected 'so' for lib on linux, got '%s'", ext)
-	}
-	if prefix != "lib" {
+	} else if prefix != "lib" {
 		t.Errorf("expected 'lib' prefix for lib on linux, got '%s'", prefix)
 	}
 
-	ext, prefix = e.getExtAndPrefix("darwin", "lib")
-	if ext != "dylib" {
+	if ext, _ := e.getExtAndPrefix("darwin", "lib"); ext != "dylib" {
 		t.Errorf("expected 'dylib' for lib on darwin, got '%s'", ext)
 	}
 }

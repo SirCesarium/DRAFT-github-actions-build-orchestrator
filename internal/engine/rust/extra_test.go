@@ -94,19 +94,3 @@ func TestRunHookFunction(t *testing.T) {
 		t.Error("expected error from failing hook")
 	}
 }
-
-func TestSetupMacOSVarsFunction(t *testing.T) {
-	e := &RustEngine{}
-
-	if envVars := e.setupMacOSVars(nil); envVars != nil {
-		t.Error("expected nil for nil target config")
-	}
-
-	tCfg := &config.TargetConfig{
-		OS:    "linux",
-		Archs: []string{"x86_64"},
-	}
-	if envVars := e.setupMacOSVars(tCfg); envVars != nil {
-		t.Errorf("expected nil for non-darwin target, got %v", envVars)
-	}
-}

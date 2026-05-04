@@ -10,6 +10,24 @@ permissions:
     contents: write
     packages: write
 jobs:
+    setup:
+        name: Setup and Global Checks
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v6
+            - name: Setup Go
+              uses: actions/setup-go@v6
+              with:
+                cache: true
+                go-version: 1.26.2
+            - name: Build Refinery from Source
+              run: go build -o ./refinery-local ./cmd/refinery
+              shell: bash
+            - name: 'Pre-Build (Global): smoke-test'
+              uses: ./.github/actions/smoke-test
+              with:
+                refinery_bin: ./refinery-local
     build:
         name: Build ${{ matrix.artifact }} (${{ matrix.os }}-${{ matrix.arch }})
         runs-on: ${{ matrix.runs_on }}
@@ -19,33 +37,33 @@ jobs:
             fail-fast: true
             matrix:
                 include:
-                    - arch: amd64
-                      artifact: refinery
+                    - artifact: refinery
                       os: darwin
+                      arch: amd64
                       runs_on: macos-latest
-                    - arch: arm64
-                      artifact: refinery
+                    - artifact: refinery
                       os: darwin
+                      arch: arm64
                       runs_on: macos-latest
-                    - arch: amd64
-                      artifact: refinery
+                    - artifact: refinery
                       os: linux
+                      arch: "386"
                       runs_on: ubuntu-latest
-                    - arch: arm64
-                      artifact: refinery
+                    - artifact: refinery
                       os: linux
+                      arch: amd64
                       runs_on: ubuntu-latest
-                    - arch: "386"
-                      artifact: refinery
+                    - artifact: refinery
                       os: linux
+                      arch: arm64
                       runs_on: ubuntu-latest
-                    - arch: amd64
-                      artifact: refinery
+                    - artifact: refinery
                       os: windows
+                      arch: "386"
                       runs_on: windows-latest
-                    - arch: "386"
-                      artifact: refinery
+                    - artifact: refinery
                       os: windows
+                      arch: amd64
                       runs_on: windows-latest
         steps:
             - name: Checkout
@@ -88,21 +106,3 @@ jobs:
                 files: ./artifacts/**/*
               env:
                 GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    setup:
-        name: Setup and Global Checks
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v6
-            - name: Setup Go
-              uses: actions/setup-go@v6
-              with:
-                cache: true
-                go-version: 1.26.2
-            - name: Build Refinery from Source
-              run: go build -o ./refinery-local ./cmd/refinery
-              shell: bash
-            - name: 'Pre-Build (Global): smoke-test'
-              uses: ./.github/actions/smoke-test
-              with:
-                refinery_bin: ./refinery-local

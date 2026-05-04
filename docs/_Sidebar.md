@@ -1,11 +1,11 @@
 ### Documentation
 - [[Home|Home]]
-- [[Getting Started|GETTING_STARTED]]
-- [[refinery.toml Guide|CONFIGURATION]]
-- [[Architectures & ABIs|ARCHITECTURES_AND_ABIS]]
-- [[Packaging|PACKAGING]]
-- [[Build Hooks|HOOKS]]
-- [[CI Integration|CI_INTEGRATION]]
+- [[Getting Started|GettingStarted]]
+- [[refinery.toml Guide|Configuration]]
+- [[Architectures & ABIs|ArchitecturesAndABIs]]
+- [[Packaging|Packaging]]
+- [[Build Hooks|Hooks]]
+- [[CI Integration|CIIntegration]]
 
 ### Resources
 - [GitHub Repository](https://github.com/SirCesarium/refinery)

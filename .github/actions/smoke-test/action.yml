@@ -1,5 +1,5 @@
 name: 'Refinery Smoke Test'
-description: 'Runs smoke tests for refinery'
+description: 'Runs smoke tests for refinery using Docker'
 inputs:
   refinery_bin:
     description: 'Path to refinery binary'
@@ -11,41 +11,13 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Setup Rust
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        targets: x86_64-unknown-linux-gnu, x86_64-unknown-linux-musl, i686-unknown-linux-gnu, aarch64-unknown-linux-gnu, wasm32-wasip1, x86_64-pc-windows-msvc, i686-pc-windows-msvc, x86_64-pc-windows-gnu, i686-pc-windows-gnu, aarch64-apple-darwin
-
-    - name: Rust Cache
-      uses: swatinem/rust-cache@v2
-      with:
-        workspaces: tests/smoke/rust-project -> target
-
-    - name: Install Rust tools (Linux)
-      if: runner.os == 'Linux'
+    - name: Build Docker image
       shell: bash
       run: |
-        curl -L https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz | tar -xzf - -C ~/.cargo/bin
-        cargo binstall --no-confirm cargo-deb cargo-generate-rpm
+        docker build -t refinery-smoke-test -f tests/smoke/Dockerfile .
 
-    - name: Install dependencies (Linux)
-      if: runner.os == 'Linux'
+    - name: Run Smoke Test in Docker
       shell: bash
       run: |
-        sudo dpkg --add-architecture i386
-        sudo apt-get update
-        sudo apt-get install -y qemu-user-static gcc-aarch64-linux-gnu gcc-i686-linux-gnu libc6-dev-i386 musl-tools gcc-mingw-w64
-
-    - name: Install Wasmtime (Linux)
-      if: runner.os == 'Linux'
-      shell: bash
-      run: |
-        curl 'https://wasmtime.dev/install.sh' -sSf | bash
-        echo "$HOME/.wasmtime/bin" >> $GITHUB_PATH
-
-    - name: Run Smoke Test
-      shell: bash
-      run: |
-        chmod +x scripts/smoke-test.sh
-        [ "${{ runner.os }}" != "Windows" ] && chmod +x ${{ inputs.refinery_bin }}
-        ./scripts/smoke-test.sh ${{ inputs.refinery_bin }} "${{ inputs.filter }}"
+        chmod +x ${{ inputs.refinery_bin }}
+        docker run --rm -v $(pwd):/app -w /app refinery-smoke-test make smoke-test-local

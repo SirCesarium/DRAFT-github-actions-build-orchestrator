@@ -436,13 +436,13 @@ func (p *Provider) getBuildArtifactStep(cfg *config.Config) []Step {
 	}
 	return []Step{{
 		Name: "Build Artifact",
-		Uses: ActionRefinery,
+		Uses: fmt.Sprintf("SirCesarium/refinery@%s", cfg.RefineryVersion),
 		With: OrderedMapAny{
 			"abi":      "${{ matrix.abi }}",
 			"arch":     "${{ matrix.arch }}",
 			"artifact": "${{ matrix.artifact }}",
 			"os":       "${{ matrix.os }}",
-			"version":  "${{ github.ref_name }}",
+			"version":  cfg.RefineryVersion,
 		},
 	}}
 }

@@ -9,5 +9,4 @@ const (
 	ActionDownloadArtifact = "actions/download-artifact@v8"
 	ActionGHRelease        = "softprops/action-gh-release@v3"
 	ActionRustToolchain    = "actions-rust-lang/setup-rust-toolchain@v1"
-	ActionRefinery         = "SirCesarium/refinery@main"
 )

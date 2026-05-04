@@ -10,7 +10,8 @@ package = "{artifact}-{version}-{os}-{arch}{abi}.{ext}"
 
 [artifacts.smoke-bin]
 type = "bin"
-source = "smoke-bin"
+source = "smoke-test"
+bin_name = "smoke-bin"
 packages = ["tar.gz"]
 
 [artifacts.smoke-bin.targets.linux-gnu]
@@ -44,7 +45,8 @@ archs = ["wasm32"]
 
 [artifacts.smoke-lib]
 type = "lib"
-source = "smoke-lib"
+source = "smoke-test"
+lib_name = "smoke_lib"
 library_types = ["cdylib", "staticlib"]
 packages = ["zip"]
 headers = true

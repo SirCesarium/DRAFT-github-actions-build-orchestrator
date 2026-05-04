@@ -14,7 +14,7 @@ runs:
     - name: Setup Rust
       uses: dtolnay/rust-toolchain@stable
       with:
-        targets: x86_64-unknown-linux-gnu, x86_64-unknown-linux-musl, i686-unknown-linux-gnu, aarch64-unknown-linux-gnu, wasm32-wasip1, x86_64-pc-windows-msvc, i686-pc-windows-msvc, x86_64-pc-windows-gnu, aarch64-apple-darwin
+        targets: x86_64-unknown-linux-gnu, x86_64-unknown-linux-musl, i686-unknown-linux-gnu, aarch64-unknown-linux-gnu, wasm32-wasip1, x86_64-pc-windows-msvc, i686-pc-windows-msvc, x86_64-pc-windows-gnu, i686-pc-windows-gnu, aarch64-apple-darwin
 
     - name: Rust Cache
       uses: swatinem/rust-cache@v2
@@ -25,16 +25,22 @@ runs:
       if: runner.os == 'Linux'
       shell: bash
       run: |
-        curl -L https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz | tar -xvzf - -C ~/.cargo/bin
+        curl -L https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz | tar -xzf - -C ~/.cargo/bin
         cargo binstall --no-confirm cargo-deb cargo-generate-rpm
 
     - name: Install dependencies (Linux)
       if: runner.os == 'Linux'
       shell: bash
       run: |
+        sudo dpkg --add-architecture i386
         sudo apt-get update
         sudo apt-get install -y qemu-user-static gcc-aarch64-linux-gnu gcc-i686-linux-gnu libc6-dev-i386 musl-tools gcc-mingw-w64
-        curl https://wasmtime.dev/install.sh -sSf | bash
+
+    - name: Install Wasmtime (Linux)
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        curl 'https://wasmtime.dev/install.sh' -sSf | bash
         echo "$HOME/.wasmtime/bin" >> $GITHUB_PATH
 
     - name: Run Smoke Test

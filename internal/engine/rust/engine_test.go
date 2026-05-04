@@ -90,8 +90,8 @@ name = "my-lib"
 	if !e.isLibDefined("my-lib", m) {
 		t.Error("expected my-lib to be defined")
 	}
-	if !e.isLibDefined("my_package", m) {
-		t.Error("expected my_package to match package name")
+	if e.isLibDefined("my_package", m) {
+		t.Error("my_package should not match when lib name is explicitly set")
 	}
 	if e.isLibDefined("wrong-lib", m) {
 		t.Error("expected wrong-lib to not be defined")
@@ -137,8 +137,8 @@ name = "bin2"
 	if !e.isBinDefined("bin1", m) {
 		t.Error("expected bin1 to be defined")
 	}
-	if !e.isBinDefined("my-package", m) {
-		t.Error("expected my-package to match")
+	if e.isBinDefined("my-package", m) {
+		t.Error("my-package should not match when bin names are explicitly defined")
 	}
 	if e.isBinDefined("wrong-bin", m) {
 		t.Error("expected wrong-bin to not be defined")

@@ -196,14 +196,30 @@ func (e *RustEngine) addTarget(target string) error {
 }
 
 // runCargoBuild executes 'cargo build' with the appropriate flags.
-func (e *RustEngine) runCargoBuild(_ *config.ArtifactConfig, artifactName, _, _, _, target, profile string) error {
+func (e *RustEngine) runCargoBuild(art *config.ArtifactConfig, artifactName, _, _, _, target, profile string) error {
 	args := []string{"build", "--target", target}
 
 	if profile != "debug" && profile != "dev" {
 		args = append(args, "--release")
 	}
 
-	args = append(args, "-p", artifactName)
+	// Use -p to specify the package (from Cargo.toml [package] name)
+	// The source field should contain the Cargo package name
+	pkgName := art.Source
+	if pkgName == "" {
+		pkgName = artifactName
+	}
+	args = append(args, "-p", pkgName)
+
+	// Specify what to build: --bin for binaries, --lib for libraries
+	switch art.Type {
+	case "bin":
+		// For bin artifacts, we need to specify which binary to build
+		// The artifact name typically matches the binary name in [[bin]] section
+		args = append(args, "--bin", artifactName)
+	case "lib":
+		args = append(args, "--lib")
+	}
 
 	cmd := exec.Command("cargo", args...)
 	cmd.Stdout = os.Stdout
@@ -229,11 +245,24 @@ func (e *RustEngine) moveArtifacts(cfg *config.Config, art *config.ArtifactConfi
 		cargoProfileDir = "debug"
 	}
 
+	// Get the actual binary/lib name from Cargo.toml
+	// For bin artifacts, use bin_name field (or artifact name as fallback)
+	// For lib artifacts, use lib_name field (or source field as fallback)
+	cargoName := artifactName
+	if art.Type == "bin" && art.BinName != "" {
+		cargoName = art.BinName
+	} else if art.Type == "lib" && art.LibName != "" {
+		cargoName = art.LibName
+	}
+
 	for _, bt := range buildTypes {
 		ext, prefix := e.getExtAndPrefix(osName, abi, art.Type, bt)
 		finalName := cfg.Naming.Resolve(cfg.Naming.Binary, artifactName, osName, arch, version, abi, ext)
 
-		realSrcName := finalName
+		// Cargo outputs files with the actual crate name, not the refinery naming scheme
+		// Binary: target/{target}/{profile}/{name} (with .exe for Windows)
+		// Library: target/{target}/{profile}/lib{name}.{ext}
+		realSrcName := cargoName
 		if prefix != "" && !strings.HasPrefix(realSrcName, prefix) {
 			realSrcName = prefix + realSrcName
 		}

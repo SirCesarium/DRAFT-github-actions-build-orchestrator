@@ -39,7 +39,9 @@ Configuration for projects that need to build the Refinery binary itself from so
 Defines a specific build unit. The `<name>` key must match the component name defined in your language manifest (e.g., the `name` field in `Cargo.toml` for `[[bin]]` or `[lib]`). Refinery uses this name to locate the compiled files.
 
 - **`type`** (string, required): Either `"bin"` (executable) or `"lib"` (library).
-- **`source`** (string, required): Path to the entry point (e.g., `"src/main.rs"`).
+- **`source`** (string, required): For Rust: Cargo package name (from `[package] name`). For Go: path to the entry point (e.g., `"."`).
+- **`bin_name`** (string, optional): **Rust only**. The binary name as defined in `[[bin]] name` in `Cargo.toml`. Use this when the binary name differs from the artifact name.
+- **`lib_name`** (string, optional): **Rust only**. The library name as defined in `[lib] name` in `Cargo.toml`. Use this when the library name differs from the package name.
 - **`library_types`** (list of strings): Only for `type = "lib"`. Formats like `"cdylib"`, `"staticlib"`, `"rlib"`.
 - **`packages`** (list of strings): Distribution formats: `"deb"`, `"rpm"`, `"msi"`, `"tar.gz"`, `"zip"`.
 - **`headers`** (boolean): If `true`, includes `.h` and `.hpp` files in archive packages.
@@ -124,7 +126,8 @@ once = true
 # Define a CLI binary for all major platforms
 [artifacts.refinery-cli]
 type = "bin"
-source = "src/main.rs"
+source = "refinery-cli"  # Cargo package name
+bin_name = "refinery-cli"  # [[bin]] name in Cargo.toml
 packages = ["tar.gz", "zip", "deb", "rpm", "msi"]
 
 [artifacts.refinery-cli.targets.linux]
@@ -149,6 +152,8 @@ archs = ["wasm32"]
 # Define a cross-platform library
 [artifacts.refinery-core]
 type = "lib"
+source = "refinery-core"  # Cargo package name
+lib_name = "refinery_core"  # [lib] name in Cargo.toml
 library_types = ["cdylib", "staticlib"]
 packages = ["zip"]
 headers = true

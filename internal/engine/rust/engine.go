@@ -60,7 +60,13 @@ func (e *RustEngine) Validate(cfg *config.Config) error {
 }
 
 // isArtifactDefinedInManifest checks if an artifact exists in Cargo.toml.
+// For Rust, we check if the package exists and if the binary/lib is defined.
 func (e *RustEngine) isArtifactDefinedInManifest(name, artifactType string, manifest *cargoManifest) bool {
+	// The package itself must exist
+	if manifest.Package.Name == "" {
+		return false
+	}
+
 	if artifactType == "lib" {
 		return e.isLibDefined(name, manifest)
 	}
@@ -69,23 +75,29 @@ func (e *RustEngine) isArtifactDefinedInManifest(name, artifactType string, mani
 
 // isLibDefined checks if a library artifact is defined in Cargo.toml.
 func (e *RustEngine) isLibDefined(name string, manifest *cargoManifest) bool {
-	if manifest.Lib != nil && manifest.Lib.Name == name {
-		return true
+	// Check if [lib] section exists
+	if manifest.Lib == nil {
+		return false
 	}
-	if strings.ReplaceAll(manifest.Package.Name, "-", "_") == name {
-		return true
+	// The lib name in Cargo.toml should match the artifact name
+	// Cargo allows underscores, refinery might use hyphens (we convert)
+	libName := manifest.Lib.Name
+	if libName == "" {
+		libName = manifest.Package.Name
 	}
-	return false
+	return strings.ReplaceAll(libName, "-", "_") == strings.ReplaceAll(name, "-", "_")
 }
 
 // isBinDefined checks if a binary artifact is defined in Cargo.toml.
 func (e *RustEngine) isBinDefined(name string, manifest *cargoManifest) bool {
+	// Check if there's a [[bin]] section with matching name
 	for _, b := range manifest.Bin {
 		if b.Name == name {
 			return true
 		}
 	}
-	return manifest.Package.Name == name
+	// If no explicit bin sections, the package name is used as the binary name
+	return len(manifest.Bin) == 0 && manifest.Package.Name == name
 }
 
 // GetCIRequirements returns necessary tools/packages for CI based on config.

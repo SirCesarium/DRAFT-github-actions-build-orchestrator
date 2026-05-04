@@ -63,6 +63,8 @@ type Project struct {
 type ArtifactConfig struct {
 	Type         string                  `toml:"type" mapstructure:"type"`
 	Source       string                  `toml:"source" mapstructure:"source"`
+	BinName      string                  `toml:"bin_name,omitempty" mapstructure:"bin_name"`
+	LibName      string                  `toml:"lib_name,omitempty" mapstructure:"lib_name"`
 	LibraryTypes []string                `toml:"library_types,omitempty" mapstructure:"library_types"`
 	Packages     []string                `toml:"packages,omitempty" mapstructure:"packages"`
 	Headers      bool                    `toml:"headers,omitempty" mapstructure:"headers"`

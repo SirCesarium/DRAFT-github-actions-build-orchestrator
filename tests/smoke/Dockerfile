@@ -23,7 +23,9 @@ RUN dpkg --add-architecture i386 && apt-get update && apt-get install -y \
     gcc-i686-linux-gnu \
     gcc-mingw-w64 \
     musl-tools \
+    libc6-dev-i386 \
     qemu-user \
+    qemu-system-arm \
     wine \
     wine64 \
     msitools \
@@ -34,11 +36,11 @@ RUN dpkg --add-architecture i386 && apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Wasmtime
-RUN curl https://wasmtime.dev/install.sh -sSf | bash
+RUN curl 'https://wasmtime.dev/install.sh' -sSf | bash
 ENV PATH="/root/.wasmtime/bin:${PATH}"
 
 # Install cargo subcommands
-RUN cargo install cargo-deb cargo-generate-rpm cargo-wix || true
+RUN cargo install cargo-deb cargo-generate-rpm || true
 
 WORKDIR /app
 

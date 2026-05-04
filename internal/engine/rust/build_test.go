@@ -163,9 +163,8 @@ func TestMoveArtifacts(t *testing.T) {
 	}
 
 	// Create file with the name that moveArtifacts will look for
-	// The naming template is "{artifact}-{os}-{arch}{abi}"
-	expectedFileName := "test-app-linux-x86_64"
-	if err := os.WriteFile("target/x86_64-unknown-linux-gnu/release/"+expectedFileName, []byte("binary"), 0644); err != nil {
+	// With BinName="test-app", the source file should be "test-app" (cargo output name)
+	if err := os.WriteFile("target/x86_64-unknown-linux-gnu/release/test-app", []byte("binary"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -176,7 +175,10 @@ func TestMoveArtifacts(t *testing.T) {
 		},
 	}
 
-	art := &config.ArtifactConfig{Type: "bin"}
+	art := &config.ArtifactConfig{
+		Type:    "bin",
+		BinName: "test-app",
+	}
 	manifest := &cargoManifest{}
 	manifest.Package.Name = "test-app"
 	manifest.Package.Version = "1.0.0"

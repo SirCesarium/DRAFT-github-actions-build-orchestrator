@@ -69,7 +69,6 @@ jobs:
         uses: egor-tensin/setup-mingw@v3
         with:
           platform: x86
-          static: true
 
       - name: Setup Rust (Windows)
         if: runner.os == 'Windows'

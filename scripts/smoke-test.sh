@@ -32,7 +32,9 @@ for os in linux windows wasi; do
         if [[ "$UNAME_S" == "MINGW"* || "$UNAME_S" == "CYGWIN"* || "$UNAME_S" == "MSYS"* ]]; then
             targets="x86_64:msvc i686:msvc"
         else
-            targets="x86_64:gnu i686:gnu"
+            # Skip Windows cross-compilation on Linux (requires MinGW)
+            # Windows MSVC targets only work on Windows runners
+            continue
         fi
     elif [ "$os" = "wasi" ]; then
         targets="wasm32"

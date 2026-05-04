@@ -21,12 +21,12 @@ jobs:
                 include:
                     - arch: amd64
                       artifact: refinery
-                      os: windows
-                      runs_on: windows-latest
-                    - arch: "386"
+                      os: darwin
+                      runs_on: macos-latest
+                    - arch: arm64
                       artifact: refinery
-                      os: windows
-                      runs_on: windows-latest
+                      os: darwin
+                      runs_on: macos-latest
                     - arch: amd64
                       artifact: refinery
                       os: linux
@@ -41,12 +41,12 @@ jobs:
                       runs_on: ubuntu-latest
                     - arch: amd64
                       artifact: refinery
-                      os: darwin
-                      runs_on: macos-latest
-                    - arch: arm64
+                      os: windows
+                      runs_on: windows-latest
+                    - arch: "386"
                       artifact: refinery
-                      os: darwin
-                      runs_on: macos-latest
+                      os: windows
+                      runs_on: windows-latest
         steps:
             - name: Checkout
               uses: actions/checkout@v6

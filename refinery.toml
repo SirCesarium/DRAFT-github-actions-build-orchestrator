@@ -25,7 +25,6 @@ with = { name = "bin-${{ matrix.artifact }}-${{ matrix.os }}-${{ matrix.arch }}$
 [artifacts.refinery]
 type = "bin"
 source = "./cmd/refinery"
-packages = ["tar.gz", "zip"]
 
 [artifacts.refinery.targets.linux]
 os = "linux"

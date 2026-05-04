@@ -1,10 +1,10 @@
 FROM golang:1.26-bookworm
 
-# Install Rust
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+# Install Rust (silent)
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs 2>/dev/null | sh -s -- -y > /dev/null 2>&1
 ENV PATH="/root/.cargo/bin:${PATH}"
 
-# Pre-install all required Rust targets
+# Pre-install all required Rust targets (silent)
 RUN rustup target add \
     x86_64-unknown-linux-gnu \
     x86_64-unknown-linux-musl \
@@ -14,10 +14,12 @@ RUN rustup target add \
     x86_64-pc-windows-gnu \
     i686-pc-windows-gnu \
     x86_64-apple-darwin \
-    aarch64-apple-darwin
+    aarch64-apple-darwin > /dev/null 2>&1
 
-# Install multi-arch toolchains, emulators and dependencies
-RUN dpkg --add-architecture i386 && apt-get update && apt-get install -y \
+# Install multi-arch toolchains, emulators and dependencies (silent)
+RUN dpkg --add-architecture i386 > /dev/null 2>&1 && \
+    apt-get update -qq > /dev/null 2>&1 && \
+    apt-get install -y -qq \
     build-essential \
     gcc-aarch64-linux-gnu \
     gcc-i686-linux-gnu \
@@ -33,14 +35,15 @@ RUN dpkg --add-architecture i386 && apt-get update && apt-get install -y \
     rpm \
     cpio \
     bc \
-    && rm -rf /var/lib/apt/lists/*
+    > /dev/null 2>&1 && \
+    rm -rf /var/lib/apt/lists/*
 
-# Install Wasmtime
-RUN curl 'https://wasmtime.dev/install.sh' -sSf | bash
+# Install Wasmtime (silent)
+RUN curl -s 'https://wasmtime.dev/install.sh' 2>/dev/null | bash > /dev/null 2>&1
 ENV PATH="/root/.wasmtime/bin:${PATH}"
 
-# Install cargo subcommands
-RUN cargo install cargo-deb cargo-generate-rpm || true
+# Install cargo subcommands (silent)
+RUN cargo install cargo-deb cargo-generate-rpm > /dev/null 2>&1 || true
 
 WORKDIR /app
 

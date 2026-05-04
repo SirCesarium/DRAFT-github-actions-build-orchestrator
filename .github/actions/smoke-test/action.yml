@@ -14,7 +14,7 @@ runs:
     - name: Build Docker image
       shell: bash
       run: |
-        docker build -t refinery-smoke-test -f tests/smoke/Dockerfile .
+        docker build -t refinery-smoke-test -f tests/smoke/Dockerfile . > /dev/null 2>&1
 
     - name: Run Smoke Test in Docker
       shell: bash

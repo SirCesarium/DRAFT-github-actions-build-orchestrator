@@ -19,8 +19,24 @@ add_pid() { PIDS="$PIDS $1"; }
 add_name() { NAMES="$NAMES $1"; }
 add_log() { LOGS="$LOGS $1"; }
 
-for os in linux windows wasi; do
-    if [ -n "$FILTER_OS" ] && [[ "$FILTER_OS" != *"$os"* ]]; then
+# Detect current OS
+CURRENT_OS=""
+UNAME_S=$(uname -s)
+if [[ "$UNAME_S" == "Linux" ]]; then
+    CURRENT_OS="linux"
+elif [[ "$UNAME_S" == "Darwin" ]]; then
+    CURRENT_OS="darwin"
+elif [[ "$UNAME_S" == "MINGW"* || "$UNAME_S" == "CYGWIN"* || "$UNAME_S" == "MSYS"* ]]; then
+    CURRENT_OS="windows"
+fi
+
+# Run tests for current OS only (matrix strategy)
+if [ -z "$FILTER_OS" ]; then
+    FILTER_OS="$CURRENT_OS"
+fi
+
+for os in linux windows darwin wasi; do
+    if [[ "$FILTER_OS" != *"$os"* ]]; then
         continue
     fi
 
@@ -28,14 +44,9 @@ for os in linux windows wasi; do
     if [ "$os" = "linux" ]; then
         targets="x86_64:gnu x86_64:musl i686:gnu aarch64:gnu"
     elif [ "$os" = "windows" ]; then
-        UNAME_S=$(uname -s)
-        if [[ "$UNAME_S" == "MINGW"* || "$UNAME_S" == "CYGWIN"* || "$UNAME_S" == "MSYS"* ]]; then
-            targets="x86_64:msvc i686:msvc"
-        else
-            # Skip Windows cross-compilation on Linux (requires MinGW)
-            # Windows MSVC targets only work on Windows runners
-            continue
-        fi
+        targets="x86_64:msvc i686:msvc x86_64:gnu i686:gnu"
+    elif [ "$os" = "darwin" ]; then
+        targets="x86_64 aarch64"
     elif [ "$os" = "wasi" ]; then
         targets="wasm32"
     else

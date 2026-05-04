@@ -1,0 +1,57 @@
+name: Smoke Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-refinery:
+    name: Build Refinery
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Build Refinery
+        run: go build -o bin/refinery ./cmd/refinery
+        shell: bash
+
+      - name: Upload Refinery binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: refinery-${{ matrix.os }}
+          path: bin/refinery*
+
+  smoke-test:
+    name: Smoke Test (${{ matrix.os }})
+    needs: build-refinery
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Download Refinery binary
+        uses: actions/download-artifact@v4
+        with:
+          name: refinery-${{ matrix.os }}
+          path: bin/
+
+      - name: Smoke Test
+        uses: ./.github/actions/smoke-test
+        with:
+          refinery_bin: bin/refinery
+          filter: ${{ matrix.os == 'ubuntu-latest' && 'linux,wasi' || matrix.os == 'windows-latest' && 'windows' || 'darwin' }}

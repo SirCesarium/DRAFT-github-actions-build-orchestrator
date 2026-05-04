@@ -4,7 +4,7 @@
 [![Build](https://github.com/SirCesarium/refinery/actions/workflows/refinery-build.yml/badge.svg)](https://github.com/SirCesarium/refinery/actions/workflows/refinery-build.yml)
 [![Smoke Tests](https://github.com/SirCesarium/refinery/actions/workflows/smoke-tests.yml/badge.svg)](https://github.com/SirCesarium/refinery/actions/workflows/smoke-tests.yml)
 [![Latest Release](https://img.shields.io/github/v/release/SirCesarium/refinery?label=release)](https://github.com/SirCesarium/refinery/releases/latest)
-[![Go Reference](https://pkg.go.dev/badge/github.com/SirCesarium/refinery.svg)](https://pkg.go.dev/github.com/SirCesarium/refinery)
+[![Wiki](https://img.shields.io/badge/docs-wiki-blue?logo=github)](https://github.com/SirCesarium/refinery-rs/wiki)
 
 **Multi-ecosystem artifact orchestrator and CI/CD pipeline generator.**
 

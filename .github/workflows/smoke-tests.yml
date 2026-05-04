@@ -13,6 +13,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
+      fail-fast: false
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -40,9 +41,16 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
+      fail-fast: false
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+          cache: true
 
       - name: Download Refinery binary
         uses: actions/download-artifact@v4
@@ -50,8 +58,44 @@ jobs:
           name: refinery-${{ matrix.os }}
           path: bin/
 
-      - name: Smoke Test
-        uses: ./.github/actions/smoke-test
+      - name: Setup Rust (Linux/macOS)
+        if: runner.os == 'Linux' || runner.os == 'macOS'
+        uses: dtolnay/rust-toolchain@stable
         with:
-          refinery_bin: bin/refinery
-          filter: ${{ matrix.os == 'ubuntu-latest' && 'linux,wasi' || matrix.os == 'windows-latest' && 'windows' || 'darwin' }}
+          targets: ${{ runner.os == 'Linux' && 'x86_64-unknown-linux-gnu,x86_64-unknown-linux-musl,i686-unknown-linux-gnu,aarch64-unknown-linux-gnu,wasm32-wasip1,x86_64-pc-windows-gnu,i686-pc-windows-gnu' || 'aarch64-apple-darwin,x86_64-apple-darwin' }}
+
+      - name: Setup Rust (Windows)
+        if: runner.os == 'Windows'
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc,i686-pc-windows-msvc,x86_64-pc-windows-gnu,i686-pc-windows-gnu
+
+      - name: Rust Cache
+        if: runner.os == 'Linux' || runner.os == 'macOS'
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: tests/smoke/rust-project -> target
+
+      - name: Install Rust tools (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          curl -L https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz | tar -xzf - -C ~/.cargo/bin
+          cargo binstall --no-confirm cargo-deb cargo-generate-rpm
+
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq gcc-aarch64-linux-gnu gcc-i686-linux-gnu libc6-dev-i386 musl-tools
+          sudo apt-get install -y -qq binutils-mingw-w64 gcc-mingw-w64 g++-mingw-w64 qemu-user-static
+          curl -s 'https://wasmtime.dev/install.sh' | bash
+          echo "$HOME/.wasmtime/bin" >> $GITHUB_PATH
+
+      - name: Run Smoke Test
+        shell: bash
+        run: |
+          chmod +x scripts/smoke-test.sh
+          [ "${{ runner.os }}" != "Windows" ] && chmod +x bin/refinery
+          ./scripts/smoke-test.sh bin/refinery "${{ matrix.os == 'ubuntu-latest' && 'linux,wasi' || matrix.os == 'windows-latest' && 'windows' || 'darwin' }}"

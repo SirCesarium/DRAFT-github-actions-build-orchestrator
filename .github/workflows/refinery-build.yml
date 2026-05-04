@@ -24,10 +24,6 @@ jobs:
             - name: Build Refinery from Source
               run: go build -o ./refinery-local ./cmd/refinery
               shell: bash
-            - name: 'Pre-Build (Global): smoke-test'
-              uses: ./.github/actions/smoke-test
-              with:
-                refinery_bin: ./refinery-local
     build:
         name: Build ${{ matrix.artifact }} (${{ matrix.os }}-${{ matrix.arch }})
         runs-on: ${{ matrix.runs_on }}

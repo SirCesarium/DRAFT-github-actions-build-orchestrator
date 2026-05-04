@@ -45,8 +45,8 @@ func TestSortedArtifactNames(t *testing.T) {
 // TestAssembleJobs tests job assembly logic.
 func TestAssembleJobs(t *testing.T) {
 	p := &GithubProvider{}
-	include := []map[string]any{
-		{"artifact": "test", "os": "linux", "arch": "x86_64", "runs_on": "ubuntu-latest"},
+	include := []MatrixEntry{
+		{Artifact: "test", OS: "linux", Arch: "x86_64", RunsOn: "ubuntu-latest"},
 	}
 	setupSteps := []Step{
 		{Name: "Checkout", Uses: "actions/checkout@v6"},
@@ -62,22 +62,21 @@ func TestAssembleJobs(t *testing.T) {
 	}
 
 	jobs := p.assembleJobs(include, setupSteps, buildSteps, teardownSteps)
-	if len(jobs) != 4 {
-		t.Fatalf("expected 4 jobs (setup, build, teardown, release), got %d", len(jobs))
-	}
-	if _, ok := jobs["setup"]; !ok {
+
+	// Check that expected jobs exist (fixed order struct)
+	if jobs.Setup == nil {
 		t.Error("expected 'setup' job")
 	}
-	if _, ok := jobs["build"]; !ok {
+	if jobs.Build.Name == "" {
 		t.Error("expected 'build' job")
 	}
-	if _, ok := jobs["teardown"]; !ok {
+	if jobs.Teardown == nil {
 		t.Error("expected 'teardown' job")
 	}
-	if len(jobs["build"].Needs) != 1 || jobs["build"].Needs[0] != "setup" {
+	if len(jobs.Build.Needs) != 1 || jobs.Build.Needs[0] != "setup" {
 		t.Error("expected 'build' job to need 'setup'")
 	}
-	if len(jobs["teardown"].Needs) != 1 || jobs["teardown"].Needs[0] != "build" {
+	if len(jobs.Teardown.Needs) != 1 || jobs.Teardown.Needs[0] != "build" {
 		t.Error("expected 'teardown' job to need 'build'")
 	}
 }
@@ -99,8 +98,8 @@ func TestBuildMatrix(t *testing.T) {
 	if len(include) != 1 {
 		t.Fatalf("expected 1 matrix entry, got %d", len(include))
 	}
-	if include[0]["os"] != "linux" {
-		t.Errorf("expected os 'linux', got '%v'", include[0]["os"])
+	if include[0].OS != "linux" {
+		t.Errorf("expected os 'linux', got '%v'", include[0].OS)
 	}
 }
 

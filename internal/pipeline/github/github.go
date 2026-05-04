@@ -12,21 +12,103 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Workflow represents a GitHub Actions workflow YAML structure.
-type Workflow struct {
-	Name        string            `yaml:"name"`
-	On          On                `yaml:"on"`
-	Permissions map[string]string `yaml:"permissions,omitempty"`
-	Jobs        map[string]Job    `yaml:"jobs"`
+// OrderedMapAny is a map[string]any that marshals to YAML with sorted keys.
+type OrderedMapAny map[string]any
+
+func (m OrderedMapAny) MarshalYAML() (interface{}, error) {
+	if m == nil || len(m) == 0 {
+		return nil, nil
+	}
+	node := &yaml.Node{
+		Kind: yaml.MappingNode,
+	}
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		data, err := yaml.Marshal(m[k])
+		if err != nil {
+			return nil, err
+		}
+		var valNode yaml.Node
+		if err := yaml.Unmarshal(data, &valNode); err != nil {
+			return nil, err
+		}
+		node.Content = append(node.Content,
+			&yaml.Node{Kind: yaml.ScalarNode, Value: k},
+			valNode.Content[0],
+		)
+	}
+	return node, nil
 }
 
+// OrderedMapString is a map[string]string that marshals to YAML with sorted keys.
+type OrderedMapString map[string]string
+
+func (m OrderedMapString) MarshalYAML() (interface{}, error) {
+	if m == nil || len(m) == 0 {
+		return nil, nil
+	}
+	node := &yaml.Node{
+		Kind: yaml.MappingNode,
+	}
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		node.Content = append(node.Content,
+			&yaml.Node{Kind: yaml.ScalarNode, Value: k},
+			&yaml.Node{Kind: yaml.ScalarNode, Value: m[k]},
+		)
+	}
+	return node, nil
+}
+
+// Permissions represents GitHub Actions permissions with fixed key order.
+type Permissions struct {
+	Contents string `yaml:"contents"`
+	Packages string `yaml:"packages"`
+}
+
+// ReleaseConfig represents the release trigger configuration.
+type ReleaseConfig struct {
+	Types []string `yaml:"types"`
+}
+
+// On represents the workflow trigger configuration.
 type On struct {
 	Push    *Event         `yaml:"push,omitempty"`
-	Release map[string]any `yaml:"release,omitempty"`
+	Release *ReleaseConfig `yaml:"release,omitempty"`
 }
 
+// Event represents a push event trigger.
 type Event struct {
 	Tags []string `yaml:"tags,omitempty"`
+}
+
+// MatrixEntry represents a single entry in the matrix include array.
+type MatrixEntry struct {
+	Artifact string `yaml:"artifact"`
+	OS       string `yaml:"os"`
+	Arch     string `yaml:"arch"`
+	RunsOn   string `yaml:"runs_on"`
+	ABI      string `yaml:"abi,omitempty"`
+}
+
+// Matrix represents the strategy matrix.
+type Matrix struct {
+	FailFast bool          `yaml:"fail-fast,omitempty"`
+	Include  []MatrixEntry `yaml:"include"`
+}
+
+// Strategy defines the build matrix strategy.
+type Strategy struct {
+	FailFast bool    `yaml:"fail-fast,omitempty"`
+	Matrix   *Matrix `yaml:"matrix,omitempty"`
 }
 
 // Job defines a single job in the workflow.
@@ -39,20 +121,31 @@ type Job struct {
 	Steps    []Step    `yaml:"steps"`
 }
 
-type Strategy struct {
-	FailFast bool           `yaml:"fail-fast,omitempty"`
-	Matrix   map[string]any `yaml:"matrix,omitempty"`
+// Jobs represents the workflow jobs with fixed key order (setup, build, teardown, release).
+type Jobs struct {
+	Setup    *Job `yaml:"setup,omitempty"`
+	Build    Job  `yaml:"build"`
+	Teardown *Job `yaml:"teardown,omitempty"`
+	Release  Job  `yaml:"release"`
+}
+
+// Workflow represents a GitHub Actions workflow YAML structure.
+type Workflow struct {
+	Name        string      `yaml:"name"`
+	On          On          `yaml:"on"`
+	Permissions Permissions `yaml:"permissions,omitempty"`
+	Jobs        Jobs        `yaml:"jobs"`
 }
 
 // Step represents a single step within a job.
 type Step struct {
-	Name  string            `yaml:"name,omitempty"`
-	If    string            `yaml:"if,omitempty"`
-	Uses  string            `yaml:"uses,omitempty"`
-	With  map[string]any    `yaml:"with,omitempty"`
-	Run   string            `yaml:"run,omitempty"`
-	Env   map[string]string `yaml:"env,omitempty"`
-	Shell string            `yaml:"shell,omitempty"`
+	Name  string           `yaml:"name,omitempty"`
+	If    string           `yaml:"if,omitempty"`
+	Uses  string           `yaml:"uses,omitempty"`
+	With  OrderedMapAny    `yaml:"with,omitempty"`
+	Run   string           `yaml:"run,omitempty"`
+	Env   OrderedMapString `yaml:"env,omitempty"`
+	Shell string           `yaml:"shell,omitempty"`
 }
 
 type GithubProvider struct {
@@ -88,14 +181,12 @@ func (p *GithubProvider) Generate(cfg *config.Config, eng engine.BuildEngine) ([
 	wf := Workflow{
 		Name: "Refinery Build",
 		On: On{
-			Push: &Event{Tags: []string{"v*"}},
-			Release: map[string]any{
-				"types": []string{"created"},
-			},
+			Push:    &Event{Tags: []string{"v*"}},
+			Release: &ReleaseConfig{Types: []string{"created"}},
 		},
-		Permissions: map[string]string{
-			"contents": "write",
-			"packages": "write",
+		Permissions: Permissions{
+			Contents: "write",
+			Packages: "write",
 		},
 		Jobs: jobs,
 	}
@@ -164,7 +255,7 @@ func (p *GithubProvider) getSplitSteps(eng engine.BuildEngine, cfg *config.Confi
 		teardown = append(teardown, Step{
 			Name: "Download All Artifacts",
 			Uses: ActionDownloadArtifact,
-			With: map[string]any{"path": "./artifacts", "merge-multiple": true},
+			With: OrderedMapAny{"merge-multiple": true, "path": "./artifacts"},
 		})
 
 		for _, step := range cfg.PostBuild {
@@ -178,39 +269,68 @@ func (p *GithubProvider) getSplitSteps(eng engine.BuildEngine, cfg *config.Confi
 }
 
 // buildMatrix creates the matrix include array from config artifacts and targets.
-func (p *GithubProvider) buildMatrix(cfg *config.Config) []map[string]any {
-	var include []map[string]any
+func (p *GithubProvider) buildMatrix(cfg *config.Config) []MatrixEntry {
+	var include []MatrixEntry
 	uniqueMatrix := make(map[string]bool)
 
 	for _, aName := range p.sortedArtifactNames(cfg) {
 		art := cfg.Artifacts[aName]
-		for _, tCfg := range art.Targets {
+		// Sort OS keys from the map to ensure deterministic iteration
+		osList := make([]string, 0, len(art.Targets))
+		for os := range art.Targets {
+			osList = append(osList, os)
+		}
+		sort.Strings(osList)
+
+		for _, osKey := range osList {
+			tCfg := art.Targets[osKey]
 			runsOn := p.getRunsOn(tCfg.OS)
-			for _, arch := range tCfg.Archs {
+			// Sort architectures
+			archs := make([]string, len(tCfg.Archs))
+			copy(archs, tCfg.Archs)
+			sort.Strings(archs)
+			for _, arch := range archs {
 				abis := tCfg.ABIs
 				if len(abis) == 0 {
 					abis = []string{""}
 				}
-				for _, abi := range abis {
-					key := fmt.Sprintf("%s-%s-%s-%s", aName, tCfg.OS, arch, abi)
+				// Sort ABIs
+				sortedABIs := make([]string, len(abis))
+				copy(sortedABIs, abis)
+				sort.Strings(sortedABIs)
+				for _, abi := range sortedABIs {
+					key := fmt.Sprintf("%s-%s-%s-%s", aName, osKey, arch, abi)
 					if uniqueMatrix[key] {
 						continue
 					}
 					uniqueMatrix[key] = true
-					m := map[string]any{
-						"artifact": aName,
-						"os":       tCfg.OS,
-						"arch":     arch,
-						"runs_on":  runsOn,
+					entry := MatrixEntry{
+						Artifact: aName,
+						OS:       tCfg.OS,
+						Arch:     arch,
+						RunsOn:   runsOn,
 					}
 					if abi != "" {
-						m["abi"] = abi
+						entry.ABI = abi
 					}
-					include = append(include, m)
+					include = append(include, entry)
 				}
 			}
 		}
 	}
+	// Sort include slice deterministically by artifact, os, arch, abi
+	sort.Slice(include, func(i, j int) bool {
+		if include[i].Artifact != include[j].Artifact {
+			return include[i].Artifact < include[j].Artifact
+		}
+		if include[i].OS != include[j].OS {
+			return include[i].OS < include[j].OS
+		}
+		if include[i].Arch != include[j].Arch {
+			return include[i].Arch < include[j].Arch
+		}
+		return include[i].ABI < include[j].ABI
+	})
 	return include
 }
 
@@ -244,7 +364,7 @@ func (p *GithubProvider) addCIRequirementSteps(steps []Step, eng engine.BuildEng
 			steps = append(steps, Step{
 				Name: "Setup Go",
 				Uses: ActionSetupGo,
-				With: map[string]any{"go-version": "1.26.2", "cache": true},
+				With: OrderedMapAny{"go-version": "1.26.2", "cache": true},
 			})
 		case "pkg:go-bin-tools":
 			steps = append(steps, Step{
@@ -257,7 +377,7 @@ func (p *GithubProvider) addCIRequirementSteps(steps []Step, eng engine.BuildEng
 			steps = append(steps, Step{
 				Name: "Setup Rust",
 				Uses: ActionRustToolchain,
-				With: map[string]any{"cache": true},
+				With: OrderedMapAny{"cache": true},
 			})
 		case "cross-linker:linux-aarch64":
 			steps = append(steps, Step{
@@ -311,11 +431,11 @@ func (p *GithubProvider) getBuildArtifactStep(cfg *config.Config) []Step {
 	return []Step{{
 		Name: "Build Artifact",
 		Uses: ActionRefinery,
-		With: map[string]any{
+		With: OrderedMapAny{
+			"abi":      "${{ matrix.abi }}",
+			"arch":     "${{ matrix.arch }}",
 			"artifact": "${{ matrix.artifact }}",
 			"os":       "${{ matrix.os }}",
-			"arch":     "${{ matrix.arch }}",
-			"abi":      "${{ matrix.abi }}",
 			"version":  "${{ github.ref_name }}",
 		},
 	}}
@@ -364,29 +484,29 @@ func (p *GithubProvider) createGithubStep(step config.BuildStep, prefix string) 
 	return ghStep
 }
 
-// assembleJobs creates the jobs map for the workflow.
-func (p *GithubProvider) assembleJobs(include []map[string]any, setup, build, teardown []Step) map[string]Job {
-	jobs := make(map[string]Job)
+// assembleJobs creates the jobs with fixed order for the workflow.
+func (p *GithubProvider) assembleJobs(include []MatrixEntry, setup, build, teardown []Step) Jobs {
+	jobs := Jobs{}
 	hasSetup := len(setup) > 1
 	hasTeardown := len(teardown) > 0
 
 	if hasSetup {
-		jobs["setup"] = Job{Name: "Setup and Global Checks", RunsOn: "ubuntu-latest", Steps: setup}
+		jobs.Setup = &Job{Name: "Setup and Global Checks", RunsOn: "ubuntu-latest", Steps: setup}
 	}
 
 	buildJob := Job{
 		Name:     "Build ${{ matrix.artifact }} (${{ matrix.os }}-${{ matrix.arch }})",
 		RunsOn:   "${{ matrix.runs_on }}",
-		Strategy: &Strategy{FailFast: true, Matrix: map[string]any{"include": include}},
+		Strategy: &Strategy{FailFast: true, Matrix: &Matrix{Include: include}},
 		Steps:    build,
 	}
 	if hasSetup {
 		buildJob.Needs = []string{"setup"}
 	}
-	jobs["build"] = buildJob
+	jobs.Build = buildJob
 
 	if hasTeardown {
-		jobs["teardown"] = Job{
+		jobs.Teardown = &Job{
 			Name:   "Global Post-Build Tasks",
 			Needs:  []string{"build"},
 			RunsOn: "ubuntu-latest",
@@ -399,7 +519,7 @@ func (p *GithubProvider) assembleJobs(include []map[string]any, setup, build, te
 		releaseNeeds = append(releaseNeeds, "teardown")
 	}
 
-	jobs["release"] = Job{
+	jobs.Release = Job{
 		Name:   "Release Artifacts",
 		Needs:  releaseNeeds,
 		RunsOn: "ubuntu-latest",
@@ -408,7 +528,7 @@ func (p *GithubProvider) assembleJobs(include []map[string]any, setup, build, te
 			{
 				Name: "Download Artifacts",
 				Uses: ActionDownloadArtifact,
-				With: map[string]any{"path": "./artifacts", "merge-multiple": true},
+				With: OrderedMapAny{"merge-multiple": true, "path": "./artifacts"},
 			},
 			{
 				Name:  "List Artifacts",
@@ -418,8 +538,8 @@ func (p *GithubProvider) assembleJobs(include []map[string]any, setup, build, te
 			{
 				Name: "Publish Release",
 				Uses: ActionGHRelease,
-				With: map[string]any{"files": "./artifacts/**/*", "fail_on_unmatched_files": true},
-				Env:  map[string]string{"GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}"},
+				With: OrderedMapAny{"fail_on_unmatched_files": true, "files": "./artifacts/**/*"},
+				Env:  OrderedMapString{"GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}"},
 			},
 		},
 	}

@@ -34,8 +34,8 @@ runs:
         esac
 
         case "${{ runner.arch }}" in
-          X64) R_ARCH="x86_64" ;;
-          ARM64) R_ARCH="aarch64" ;;
+          X64) R_ARCH="amd64" ;;
+          ARM64) R_ARCH="arm64" ;;
           *) exit 1 ;;
         esac
 

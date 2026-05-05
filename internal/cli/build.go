@@ -65,7 +65,7 @@ var buildCmd = &cobra.Command{
 		ui.Success("Build completed successfully")
 
 		// Determine and execute packaging.
-		packageFormats := mergePackages(art.Packages, findTargetPackages(art, osName, arch, abi))
+		packageFormats := filterPackagesByOS(mergePackages(art.Packages, findTargetPackages(art, osName, arch, abi)), osName)
 		if len(packageFormats) > 0 {
 			ui.Section("Packaging")
 			for _, format := range packageFormats {
@@ -139,6 +139,43 @@ func findTargetPackages(art *config.ArtifactConfig, osName, arch, abi string) []
 		return art.Packages
 	}
 	return nil
+}
+
+// filterPackagesByOS filters package formats based on the target OS.
+// - deb, rpm: only Linux
+// - msi: only Windows
+// - tar.gz, zip: all OS (zip common on Windows, tar.gz on Linux/macOS)
+func filterPackagesByOS(formats []string, osName string) []string {
+	if len(formats) == 0 {
+		return formats
+	}
+
+	seen := map[string]bool{}
+	filtered := make([]string, 0, len(formats))
+
+	for _, f := range formats {
+		if seen[f] {
+			continue
+		}
+		seen[f] = true
+
+		switch f {
+		case "deb", "rpm":
+			if osName == "linux" {
+				filtered = append(filtered, f)
+			}
+		case "msi":
+			if osName == "windows" {
+				filtered = append(filtered, f)
+			}
+		case "tar.gz", "targz", "zip":
+			filtered = append(filtered, f)
+		default:
+			// Unknown format, include it and let the engine handle the error
+			filtered = append(filtered, f)
+		}
+	}
+	return filtered
 }
 
 // contains checks if a string is present in a slice.

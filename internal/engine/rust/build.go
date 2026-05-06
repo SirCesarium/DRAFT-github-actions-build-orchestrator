@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/SirCesarium/refinery/internal/config"
@@ -117,13 +118,34 @@ func (e *RustEngine) runHook(hook string) error {
 }
 
 // setupEnvironment sets up environment variables for the build.
-func (e *RustEngine) setupEnvironment(art *config.ArtifactConfig, osName, arch, _, target string) error {
+func (e *RustEngine) setupEnvironment(art *config.ArtifactConfig, osName, arch, abi, target string) error {
 	if err := e.setupMacOSDeployment(); err != nil {
 		return err
 	}
 
 	if err := e.setupLinker(art, osName, arch, target); err != nil {
 		return err
+	}
+
+	// For musl targets, set CC_<target> to use the correct compiler
+	if abi == "musl" {
+		ccVar := fmt.Sprintf("CC_%s", strings.ReplaceAll(strings.ToUpper(target), "-", "_"))
+		if os.Getenv(ccVar) == "" {
+			// Try to find an appropriate compiler
+			compiler := "musl-gcc"
+			if arch == "aarch64" {
+				// On aarch64, we might be able to use gcc directly or need a specific cross-compiler
+				// Check if we're running on aarch64
+				if runtime.GOARCH == "arm64" {
+					compiler = "gcc"
+				} else {
+					compiler = "aarch64-linux-musl-gcc"
+				}
+			}
+			if err := os.Setenv(ccVar, compiler); err != nil {
+				return fmt.Errorf("failed to set %s: %w", ccVar, err)
+			}
+		}
 	}
 
 	return nil

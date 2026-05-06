@@ -205,7 +205,6 @@ func (p *Provider) getSplitSteps(eng engine.BuildEngine, cfg *config.Config) (se
 
 	// 1. Setup Stage (Global Pre-Build)
 	setup = append(setup, Step{Name: "Checkout", Uses: ActionCheckout})
-	setup = p.addCIRequirementSteps(setup, eng, cfg)
 
 	if buildRefinery {
 		setup = append(setup, Step{
@@ -396,21 +395,21 @@ func (p *Provider) addCIRequirementSteps(steps []Step, eng engine.BuildEngine, c
 			steps = append(steps, Step{
 				Name:  "Install Musl Tools",
 				If:    "runner.os == 'Linux'",
-				Run:   "sudo apt-get update && sudo apt-get install -y musl-tools && ( sudo ln -sf $(which musl-gcc) /usr/bin/x86_64-linux-musl-gcc 2>/dev/null || sudo ln -sf /usr/bin/musl-gcc /usr/bin/x86_64-linux-musl-gcc )",
+				Run:   "sudo apt-get update && sudo apt-get install -y musl-tools && [ -f /usr/bin/x86_64-linux-musl-gcc ] || sudo ln -sf /usr/bin/musl-gcc /usr/bin/x86_64-linux-musl-gcc",
 				Shell: "bash",
 			})
 		case "pkg:cargo-deb":
 			steps = append(steps, Step{
 				Name:  "Install cargo-deb",
 				If:    "runner.os == 'Linux'",
-				Run:   "cargo install cargo-deb",
+				Run:   "cargo install cargo-binstall 2>/dev/null; cargo binstall -y cargo-deb || cargo install cargo-deb",
 				Shell: "bash",
 			})
 		case "pkg:cargo-generate-rpm":
 			steps = append(steps, Step{
 				Name:  "Install cargo-generate-rpm",
 				If:    "runner.os == 'Linux'",
-				Run:   "cargo install cargo-generate-rpm",
+				Run:   "cargo install cargo-binstall 2>/dev/null; cargo binstall -y cargo-generate-rpm || cargo install cargo-generate-rpm",
 				Shell: "bash",
 			})
 		case "pkg:cargo-wix":

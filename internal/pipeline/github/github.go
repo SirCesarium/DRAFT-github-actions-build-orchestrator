@@ -396,7 +396,7 @@ func (p *Provider) addCIRequirementSteps(steps []Step, eng engine.BuildEngine, c
 			steps = append(steps, Step{
 				Name:  "Install Musl Tools",
 				If:    "runner.os == 'Linux'",
-				Run:   "sudo apt-get update && sudo apt-get install -y musl-tools",
+				Run:   "sudo apt-get update && sudo apt-get install -y musl-tools && sudo ln -sf /usr/bin/musl-gcc /usr/bin/x86_64-linux-musl-gcc",
 				Shell: "bash",
 			})
 		case "pkg:cargo-deb":

@@ -392,7 +392,7 @@ func (p *Provider) addCIRequirementSteps(steps []Step, eng engine.BuildEngine, c
 			steps = append(steps, Step{
 				Name:  "Install ARM Linker",
 				If:    "runner.os == 'Linux'",
-				Run:   "sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu musl-tools && ( sudo ln -sf $(which aarch64-linux-gnu-gcc) /usr/bin/aarch64-linux-gnu-gcc 2>/dev/null || sudo ln -sf /usr/bin/aarch64-linux-gnu-gcc /usr/bin/aarch64-linux-gnu-gcc ) && sudo ln -sf /usr/bin/aarch64-linux-gnu-gcc /usr/bin/aarch64-linux-musl-gcc 2>/dev/null || true",
+				Run:   "sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu musl-tools && sudo ln -sf /usr/bin/aarch64-linux-gnu-gcc /usr/bin/aarch64-linux-gnu-gcc && sudo ln -sf /usr/bin/aarch64-linux-gnu-gcc /usr/bin/aarch64-linux-musl-gcc || true",
 				Shell: "bash",
 			})
 		case "pkg:musl-tools":
@@ -406,14 +406,14 @@ func (p *Provider) addCIRequirementSteps(steps []Step, eng engine.BuildEngine, c
 			steps = append(steps, Step{
 				Name:  "Install cargo-deb",
 				If:    "runner.os == 'Linux'",
-				Run:   "cargo install cargo-binstall 2>/dev/null; cargo binstall -y cargo-deb || cargo install cargo-deb",
+				Run:   "cargo install cargo-binstall 2>&1; cargo binstall -y cargo-deb || cargo install cargo-deb 2>&1",
 				Shell: "bash",
 			})
 		case "pkg:cargo-generate-rpm":
 			steps = append(steps, Step{
 				Name:  "Install cargo-generate-rpm",
 				If:    "runner.os == 'Linux'",
-				Run:   "cargo install cargo-binstall 2>/dev/null; cargo binstall -y cargo-generate-rpm || cargo install cargo-generate-rpm",
+				Run:   "cargo install cargo-binstall 2>&1; cargo binstall -y cargo-generate-rpm || cargo install cargo-generate-rpm 2>&1",
 				Shell: "bash",
 			})
 		case "pkg:cargo-wix":

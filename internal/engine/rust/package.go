@@ -52,6 +52,14 @@ func (e *RustEngine) handleSystemPackage(_ *config.Config, art *config.ArtifactC
 
 // validateSystemPackage checks OS, ABI, arch, and tool availability.
 func (e *RustEngine) validateSystemPackage(osName, abi, arch, format string) error {
+	if format == "msi" && osName != "windows" {
+		return fmt.Errorf("%s packaging is only supported for windows", format)
+	}
+
+	if (format == "deb" || format == "rpm") && osName != "linux" {
+		return fmt.Errorf("%s packaging is only supported for linux", format)
+	}
+
 	if osName != "linux" || abi == "musl" || arch == "wasm32" {
 		return fmt.Errorf("%s packaging is only supported for linux (non-musl, non-wasm)", format)
 	}

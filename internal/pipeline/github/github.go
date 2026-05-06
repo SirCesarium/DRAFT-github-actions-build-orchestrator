@@ -389,7 +389,7 @@ func (p *Provider) addCIRequirementSteps(steps []Step, eng engine.BuildEngine, c
 			steps = append(steps, Step{
 				Name:  "Install ARM Linker",
 				If:    "runner.os == 'Linux'",
-				Run:   "sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu",
+				Run:   "sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu && sudo ln -sf /usr/bin/aarch64-linux-gnu-gcc /usr/bin/aarch64-linux-gnu-gcc 2>/dev/null || true",
 				Shell: "bash",
 			})
 		case "pkg:musl-tools":

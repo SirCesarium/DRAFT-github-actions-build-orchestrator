@@ -104,16 +104,8 @@ func (e *RustEngine) isBinDefined(name string, manifest *cargoManifest) bool {
 func (e *RustEngine) GetCIRequirements(cfg *config.Config) []string {
 	reqs := []string{"rust"}
 	for _, art := range cfg.Artifacts {
-		for _, pkg := range art.Packages {
-			switch pkg {
-			case "deb":
-				reqs = append(reqs, "pkg:cargo-deb")
-			case "rpm":
-				reqs = append(reqs, "pkg:cargo-generate-rpm")
-			case "msi":
-				reqs = append(reqs, "pkg:cargo-wix")
-			}
-		}
+		reqs = e.addTargetRequirements(reqs, art)
+		reqs = e.addPackageRequirements(reqs, art)
 	}
 	return reqs
 }

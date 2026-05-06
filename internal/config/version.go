@@ -9,7 +9,7 @@ import (
 )
 
 // ResolveRefineryVersion resolves flexible version strings to a GitHub ref.
-// Supports: latest, dev, nightly, major (2), major.minor (2.0), full semver (2.0.0)
+// Supports: latest, dev, nightly, major (2), major.minor (2.0), full semver (2.0.0).
 func ResolveRefineryVersion(version string) (string, error) {
 	version = strings.TrimSpace(version)
 	if version == "" {
@@ -108,7 +108,6 @@ func getLatestStable() (string, error) {
 	if len(stable) == 0 {
 		return "main", nil
 	}
-
 	return findHighestVersion(stable), nil
 }
 
@@ -153,33 +152,48 @@ func findHighestVersion(versions []string) string {
 	return highest
 }
 
-// compareVersions compares two version strings (v2.1.0 vs v2.0.5)
+// compareVersions compares two version strings semantically (v2.0.10 > v2.0.9)
 func compareVersions(a, b string) int {
 	a = strings.TrimPrefix(a, "v")
 	b = strings.TrimPrefix(b, "v")
 
-	aParts := strings.Split(a, ".")
-	bParts := strings.Split(b, ".")
+	aParts := strings.Split(a, "-")[0] // Remove -rc suffix
+	bParts := strings.Split(b, "-")[0]
 
-	for i := 0; i < len(aParts) && i < len(bParts); i++ {
-		aPart := strings.Split(aParts[i], "-")[0]
-		bPart := strings.Split(bParts[i], "-")[0]
+	aNums := strings.Split(aParts, ".")
+	bNums := strings.Split(bParts, ".")
 
-		if aPart > bPart {
+	for i := 0; i < len(aNums) && i < len(bNums); i++ {
+		aNum := atoi(aNums[i])
+		bNum := atoi(bNums[i])
+		if aNum > bNum {
 			return 1
 		}
-		if aPart < bPart {
+		if aNum < bNum {
 			return -1
 		}
 	}
 
-	if len(aParts) > len(bParts) {
+	if len(aNums) > len(bNums) {
 		return 1
 	}
-	if len(aParts) < len(bParts) {
+	if len(aNums) < len(bNums) {
 		return -1
 	}
 	return 0
+}
+
+// atoi converts string to int, returns 0 if invalid
+func atoi(s string) int {
+	n := 0
+	for _, c := range s {
+		if c >= '0' && c <= '9' {
+			n = n*10 + int(c-'0')
+		} else {
+			break
+		}
+	}
+	return n
 }
 
 // findLatestMatching finds the latest version matching a prefix (e.g., "2" finds latest v2.x.x)

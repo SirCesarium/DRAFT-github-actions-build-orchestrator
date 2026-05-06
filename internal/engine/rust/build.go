@@ -14,6 +14,32 @@ import (
 	"github.com/SirCesarium/refinery/internal/ui"
 )
 
+// getValidPackages returns packages valid for the given OS
+func getValidPackages(packages []string, osName string) []string {
+	osPackages := map[string][]string{
+		"linux":   {"tar.gz", "deb", "rpm"},
+		"windows": {"zip", "msi"},
+		"darwin":  {"tar.gz"},
+	}
+
+	valid := osPackages[osName]
+	if len(valid) == 0 {
+		return nil
+	}
+
+	// Intersect requested packages with valid ones
+	var result []string
+	for _, p := range packages {
+		for _, v := range valid {
+			if p == v {
+				result = append(result, p)
+				break
+			}
+		}
+	}
+	return result
+}
+
 // build orchestrates the full build process: setup, compile, and move artifacts.
 func (e *RustEngine) build(cfg *config.Config, art *config.ArtifactConfig, opts engine.BuildOptions) error {
 	bestMatch := e.getBestMatch(art, opts.OS, opts.Arch, opts.ABI)
@@ -50,8 +76,13 @@ func (e *RustEngine) build(cfg *config.Config, art *config.ArtifactConfig, opts 
 		return err
 	}
 
-	if err := e.moveArtifacts(cfg, art, opts.ArtifactName, opts.OS, opts.Arch, opts.ABI, targetTriple, version, profile, manifest); err != nil {
-		return err
+	// Filter packages by OS
+	validPackages := getValidPackages(art.Packages, opts.OS)
+
+	for _, format := range validPackages {
+		if err := e.pkg(cfg, art, opts.ArtifactName, opts.OS, opts.Arch, opts.ABI, version, format); err != nil {
+			ui.Warn("Failed to create package %s: %v", format, err)
+		}
 	}
 
 	return e.runHooks(art, opts, binaryName, "PostBuild")

@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"github.com/SirCesarium/refinery/internal/config"
+	"github.com/SirCesarium/refinery/internal/ui"
 )
 
 // resolveTarget converts OS/arch/ABI to a Rust target triple.
@@ -128,6 +129,12 @@ func (e *RustEngine) validateTriple(osName, arch, abi string) error {
 	case "wasm", "wasi":
 		if arch != "wasm32" {
 			return fmt.Errorf("unsupported architecture for web: %s", arch)
+		}
+	case "linux":
+		// Skip musl on aarch64 - uncommon and requires special cross-compiler setup
+		if arch == "aarch64" && abi == "musl" {
+			ui.Warn("skipping linux-aarch64-musl: musl on aarch64 is uncommon and not supported")
+			return nil
 		}
 	}
 	return nil

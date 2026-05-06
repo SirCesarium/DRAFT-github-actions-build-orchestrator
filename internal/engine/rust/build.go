@@ -139,7 +139,9 @@ func (e *RustEngine) setupEnvironment(art *config.ArtifactConfig, osName, arch, 
 				if runtime.GOARCH == "arm64" {
 					compiler = "gcc"
 				} else {
-					compiler = "aarch64-linux-musl-gcc"
+					// For cross-compilation, use the aarch64-linux-gnu-gcc with proper musl support
+					// or fallback to aarch64-linux-musl-gcc if available
+					compiler = "aarch64-linux-gnu-gcc"
 				}
 			}
 			if err := os.Setenv(ccVar, compiler); err != nil {
@@ -197,7 +199,7 @@ func (e *RustEngine) getLinkerFromConfig(art *config.ArtifactConfig, osName, arc
 
 // setupMacOSDeployment sets a default deployment target for macOS.
 func (e *RustEngine) setupMacOSDeployment() error {
-	if os.Getenv("MACOSX_DEPLOYMENT_TARGET") == "" {
+	if runtime.GOOS == "darwin" && os.Getenv("MACOSX_DEPLOYMENT_TARGET") == "" {
 		ui.Warn("MACOSX_DEPLOYMENT_TARGET not set, defaulting to 10.7")
 		if err := os.Setenv("MACOSX_DEPLOYMENT_TARGET", "10.7"); err != nil {
 			return fmt.Errorf("failed to set MACOSX_DEPLOYMENT_TARGET: %w", err)

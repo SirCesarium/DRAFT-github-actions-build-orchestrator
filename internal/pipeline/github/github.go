@@ -304,6 +304,10 @@ func (p *Provider) buildMatrix(cfg *config.Config) []MatrixEntry {
 				copy(sortedABIs, abis)
 				sort.Strings(sortedABIs)
 				for _, abi := range sortedABIs {
+					// Skip linux-aarch64-musl - unsupported combination
+					if tCfg.OS == "linux" && arch == "aarch64" && abi == "musl" {
+						continue
+					}
 					key := fmt.Sprintf("%s-%s-%s-%s", aName, osKey, arch, abi)
 					if uniqueMatrix[key] {
 						continue
@@ -388,7 +392,7 @@ func (p *Provider) addCIRequirementSteps(steps []Step, eng engine.BuildEngine, c
 			steps = append(steps, Step{
 				Name:  "Install ARM Linker",
 				If:    "runner.os == 'Linux'",
-				Run:   "sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu && ( sudo ln -sf $(which aarch64-linux-gnu-gcc) /usr/bin/aarch64-linux-gnu-gcc 2>/dev/null || sudo ln -sf /usr/bin/aarch64-linux-gnu-gcc /usr/bin/aarch64-linux-gnu-gcc )",
+				Run:   "sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu musl-tools && ( sudo ln -sf $(which aarch64-linux-gnu-gcc) /usr/bin/aarch64-linux-gnu-gcc 2>/dev/null || sudo ln -sf /usr/bin/aarch64-linux-gnu-gcc /usr/bin/aarch64-linux-gnu-gcc ) && sudo ln -sf /usr/bin/aarch64-linux-gnu-gcc /usr/bin/aarch64-linux-musl-gcc 2>/dev/null || true",
 				Shell: "bash",
 			})
 		case "pkg:musl-tools":

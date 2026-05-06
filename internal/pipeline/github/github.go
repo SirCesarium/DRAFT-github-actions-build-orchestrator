@@ -434,15 +434,22 @@ func (p *Provider) getBuildArtifactStep(cfg *config.Config) []Step {
 			Shell: "bash",
 		}}
 	}
+	// Resolve version to support: latest, canary, nightly, partial versions
+	refineryRef, err := config.ResolveRefineryVersion(cfg.RefineryVersion)
+	if err != nil {
+		// Fall back to using the version string directly
+		refineryRef = cfg.RefineryVersion
+	}
+
 	return []Step{{
 		Name: "Build Artifact",
-		Uses: fmt.Sprintf("SirCesarium/refinery@%s", cfg.RefineryVersion),
+		Uses: fmt.Sprintf("SirCesarium/refinery@%s", refineryRef),
 		With: OrderedMapAny{
 			"abi":      "${{ matrix.abi }}",
 			"arch":     "${{ matrix.arch }}",
 			"artifact": "${{ matrix.artifact }}",
 			"os":       "${{ matrix.os }}",
-			"version":  cfg.RefineryVersion,
+			"version":  refineryRef,
 		},
 	}}
 }
